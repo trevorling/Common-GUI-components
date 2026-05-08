@@ -177,7 +177,14 @@
       "statusAddedDate": "Staatuse lisamise kuupäev",
       "chosenCsa": "Valitud nõustaja(d)",
       "chosenColumn": "Valitud tulba(d)",
-      "chooseAll": "Vali kõik"
+      "chooseAll": "Vali kõik",
+      "conversationResponseQuality": "Vastuse kvaliteet",
+      "followUpAction": "Järeltegevus",
+      "chooseFollowUpAction": "- Vali järeltegevus -",
+      "chooseConversationResponseQuality": "- Vali vastuse kvaliteet -",
+      "chooseConversationTheme": "- Vali vestluse valdkond -",
+      "conversationTheme": "Vestluse valdkond",
+      "analysis": "Analüüs"
     },
     "plainEvents": {
       "answered": "Vastatud",
@@ -466,7 +473,10 @@
       "copied": "Kopeeritud",
       "userDeleted": "Kasutaja kustutatud",
       "newUserAdded": "Uus kasutaja lisatud",
-      "userUpdated": "Kasutaja uuendatud"
+      "userUpdated": "Kasutaja uuendatud",
+      "conversationThemeSaved": "Valdkonna valik on salvestatud.",
+      "conversationQualitySaved": "Vastuse kvaliteedi valik on salvestatud.",
+      "conversationFollowUpActionSaved": "Järeltegevuse valik on salvestatud."
     }
   },
   "notification": {

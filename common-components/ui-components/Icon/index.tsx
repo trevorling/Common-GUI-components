@@ -14,6 +14,7 @@ const Icon = forwardRef<HTMLSpanElement, IconProps>(({ label, icon, size = 'smal
     const iconClasses = clsx(
         'icon',
         `icon--${size}`,
+        rest.className,
     );
 
     return (

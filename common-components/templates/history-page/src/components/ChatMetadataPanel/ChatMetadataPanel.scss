@@ -1,0 +1,11 @@
+@import 'src/styles/settings/variables/typography';
+
+.metadata-item {
+  &__value {
+    font-size: $veera-font-size-80;
+  }
+  &__meta {
+    font-size: $veera-font-size-70;
+    color: #686B78;
+  }
+}
