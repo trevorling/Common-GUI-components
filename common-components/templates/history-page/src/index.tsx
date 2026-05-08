@@ -16,6 +16,7 @@ import {
     Dialog,
     Drawer,
     FormCheckbox,
+    FormCombobox,
     FormDatepicker,
     FormInput,
     FormMultiselect,
@@ -38,6 +39,7 @@ import {ToastContextType} from "../../../context";
 import {getDomainsArray} from "../../../utils/multiDomain-utils";
 import {StoreState} from "../../../store";
 import {saveFile} from "../../../services/file";
+import {ChatMetadataPanel} from './components';
 
 type HistoryProps = {
     user: UserInfo | null;
@@ -1079,8 +1081,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         }
     };
 
-    const endUserFullName = getUserName();
-
     const isClearFiltersVisible = useMemo(()=> {
         return search.length > 0 || selectedColumns.length > 0;
     }, [search, selectedColumns]);
@@ -1329,138 +1329,9 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                 />
                             </Drawer>
                         </div>
-                        <div className="side-meta">
-                            <div>
-                                <p>
-                                    <strong>ID</strong>
-                                </p>
-                                <p>{selectedChat.id}</p>
-                            </div>
-                            <div>
-                                <p>
-                                    <strong>{t('chat.endUser')}</strong>
-                                </p>
-                                <p>{endUserFullName}</p>
-                            </div>
-                            {selectedChat.endUserId && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.endUserId')}</strong>
-                                    </p>
-                                    <p>{selectedChat.endUserId ?? ''}</p>
-                                </div>
-                            )}
-                            {selectedChat.endUserEmail && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.endUserEmail')}</strong>
-                                    </p>
-                                    <p>{selectedChat.endUserEmail}</p>
-                                </div>
-                            )}
-                            {selectedChat.endUserPhone && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.endUserPhoneNumber')}</strong>
-                                    </p>
-                                    <p>{selectedChat.endUserPhone}</p>
-                                </div>
-                            )}
-                            {selectedChat.customerSupportDisplayName && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.csaName')}</strong>
-                                    </p>
-                                    <p>{selectedChat.customerSupportDisplayName}</p>
-                                </div>
-                            )}
-                            <div>
-                                <p>
-                                    <strong>{t('chat.startedAt')}</strong>
-                                </p>
-                                <p>
-                                    {format(
-                                        new Date(selectedChat.created),
-                                        'dd. MMMM Y HH:mm:ss',
-                                        {
-                                            locale: et,
-                                        }
-                                    ).toLowerCase()}
-                                </p>
-                            </div>
-                            <div>
-                                <p>
-                                    <strong>{t('chat.device')}</strong>
-                                </p>
-                                <p>{selectedChat.endUserOs}</p>
-                            </div>
-                            <div>
-                                <p>
-                                    <strong>{t('chat.location')}</strong>
-                                </p>
-                                <p>{selectedChat.endUserUrl}</p>
-                            </div>
-                            {selectedChat.comment && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.history.comment')}</strong>
-                                    </p>
-                                    <p>{selectedChat.comment}</p>
-                                </div>
-                            )}
-                            {selectedChat.commentAuthor && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.history.commentAuthor')}</strong>
-                                    </p>
-                                    <p>{selectedChat.commentAuthor}</p>
-                                </div>
-                            )}
-                            {selectedChat.commentAddedDate && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.history.commentAddedDate')}</strong>
-                                    </p>
-                                    <p>
-                                        {format(
-                                            new Date(selectedChat.commentAddedDate),
-                                            'dd.MM.yyyy'
-                                        )}
-                                    </p>
-                                </div>
-                            )}
-                            {selectedChat.lastMessageEvent && (
-                                <div>
-                                    <p>
-                                        <strong>{t('global.status')}</strong>
-                                    </p>
-                                    <p>
-                                        {t('chat.plainEvents.' + selectedChat.lastMessageEvent)}
-                                    </p>
-                                </div>
-                            )}
-                            {selectedChat.userDisplayName && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.history.statusAdder')}</strong>
-                                    </p>
-                                    <p>{selectedChat.userDisplayName}</p>
-                                </div>
-                            )}
-                            {selectedChat.lastMessageTimestamp && (
-                                <div>
-                                    <p>
-                                        <strong>{t('chat.history.statusAddedDate')}</strong>
-                                    </p>
-                                    <p>
-                                        {format(
-                                            new Date(selectedChat.lastMessageTimestamp),
-                                            'dd.MM.yyyy'
-                                        )}
-                                    </p>
-                                </div>
-                            )}
-                        </div>
+                            <ChatMetadataPanel chat={selectedChat}>
+                                <QualitySettings /> 
+                            </ChatMetadataPanel>
                     </>
                 )}
             </div>
@@ -1498,13 +1369,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             )}
         </>
     );
-
-    function getUserName() {
-        return selectedChat?.endUserFirstName !== '' &&
-        selectedChat?.endUserLastName !== ''
-            ? `${selectedChat?.endUserFirstName} ${selectedChat?.endUserLastName}`
-            : t('global.anonymous');
-    }
 };
 
 export default ChatHistory;

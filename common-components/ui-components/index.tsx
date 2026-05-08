@@ -12,6 +12,7 @@ import {
     FormTextarea,
     Switch,
     SwitchBox,
+    FormCombobox,
 } from './FormElements';
 import DataTable from './DataTable';
 import Tooltip from './Tooltip';
@@ -52,4 +53,5 @@ export {
     Toast,
     Label,
     ClearFiltersButton,
+    FormCombobox,
 };

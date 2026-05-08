@@ -1,0 +1,15 @@
+@import 'src/styles/tools/spacing';
+
+.title {
+  font-size: 16px;
+  font-weight: 400;
+  line-height: 20px;
+  color: #131317;
+}
+
+.quality-settings {
+  border-top: 1px solid #e0e0e0;
+  gap: 8px;
+  margin-top: auto;
+  padding: get-spacing(haapsalu);
+}
