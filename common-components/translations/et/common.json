@@ -289,6 +289,12 @@
         "requestedAt": "Taotletud Kell",
         "approve": "Kinnita"
       }
+    },
+    "quality": {
+      "theme": "Vestluse valdkond",
+      "responseQuality": "Vastuse kvaliteet",
+      "followUpAction": "Järeltegevus",
+      "selectionEmptied": "Valik tühjendatud"
     }
   },
   "deleteConversation": {
