@@ -1099,7 +1099,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     if (!filteredEndedChatsList) return <>Loading... {{filteredEndedChatsList}} something is wrong </>;
 
     return (
-        <>
+        <div className="history-page-wrapper">
             <div className="header-container">
                 {displayTitle && (
                     <h1>{t('chat.history.title')}{totalCount === null ? '' : ` (${totalCount.toLocaleString('et-EE')})`}</h1>
@@ -1255,7 +1255,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                     <ClearFiltersButton style={{ marginLeft: 'auto' }} onClick={onClearFilersClick} />
                 </Track>
             )}
-            <div className="card-drawer-container" style={{height: '100%', overflow: 'auto'}}>
+            <div className="card-drawer-container">
                 <div className="card-wrapper">
                     <Card>
                         <DataTable
@@ -1496,7 +1496,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                     <p>{t('global.removeValidation')}</p>
                 </Dialog>
             )}
-        </>
+        </div>
     );
 
     function getUserName() {

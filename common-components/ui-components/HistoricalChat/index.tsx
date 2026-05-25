@@ -59,7 +59,7 @@ const HistoricalChat: FC<ChatProps> = ({
   onMessageClick,
 }) => {
   const { t } = useTranslation();
-  const chatRef = useRef<HTMLDivElement>(null);
+  const groupWrapperRef = useRef<HTMLDivElement>(null);
   const [messageGroups, setMessageGroups] = useState<GroupedMessage[]>([]);
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [messagesList, setMessagesList] = useState<Message[]>([]);
@@ -186,8 +186,8 @@ const HistoricalChat: FC<ChatProps> = ({
   }, [messagesList, endUserFullName]);
 
   useEffect(() => {
-    if (!chatRef.current || !messageGroups) return;
-    chatRef.current.scrollIntoView({ block: "end", inline: "end" });
+    if (!groupWrapperRef.current || !messageGroups) return;
+    groupWrapperRef.current.scrollTop = groupWrapperRef.current.scrollHeight;
   }, [messageGroups]);
 
   const isEvent = (group: GroupedMessage) => {
@@ -258,7 +258,7 @@ const HistoricalChat: FC<ChatProps> = ({
       <div className="historical-chat">
         <div className="historical-chat__body">
           {header_link && <div className={"header-link"}>{header_link}</div>}
-          <div className="historical-chat__group-wrapper">
+          <div className="historical-chat__group-wrapper" ref={groupWrapperRef}>
             {messageGroups?.map((group, index) => (
               <div
                 className={clsx(["historical-chat__group", `historical-chat__group--${group.type}`])}
@@ -304,7 +304,6 @@ const HistoricalChat: FC<ChatProps> = ({
                 )}
               </div>
             ))}
-            <div id="anchor" ref={chatRef}></div>
           </div>
           {lastMessage && (
             <div className="historical-chat__toolbar">
@@ -362,7 +361,6 @@ const HistoricalChat: FC<ChatProps> = ({
             </div>
           )}
         </div>
-        <div id="anchor" ref={chatRef}></div>
       </div>
   );
 };
