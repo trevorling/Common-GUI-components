@@ -4,6 +4,10 @@ All changes to this project will be documented in this file.
 
 ## Template [MajorVersion.MediterraneanVersion.MinorVersion] - DD-MM-YYYY
 
+## [0.0.58] - 25.05.2026
+
+- Properly render mcq selected button
+
 ## [0.0.57] - 14.05.2026
 
 - Added authenticated person to chosen columns list

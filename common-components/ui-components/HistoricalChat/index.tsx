@@ -13,6 +13,8 @@ import { apiDev } from "../../services/api";
 import ChatEvent from "../../ui-components/ChatEvent";
 import { ToastContextType } from "../../context";
 import { AUTHOR_ROLES } from "../../utils/constants";
+import { parseButtons } from "../../utils/parse-utils";
+import { MessageButton } from "../../types/message";
 
 type ChatProps = {
   chat: ChatType;
@@ -192,6 +194,14 @@ const HistoricalChat: FC<ChatProps> = ({
     return (group.type === "event" || group.name.trim() === "" ||  group.messages.some((message) => message.event && message.event !== CHAT_EVENTS.GREETING));
   };
 
+  const getPreviousButtons = (messageId: string | undefined): MessageButton[] => {
+    const idx = messagesList.findIndex((m) => m.id === messageId);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messagesList[i].buttons) return parseButtons(messagesList[i]);
+    }
+    return [];
+  };
+
   const eventGroup = (group: GroupedMessage) => {
     return group.messages.map((message) => {
       if (message.event) {
@@ -232,6 +242,7 @@ const HistoricalChat: FC<ChatProps> = ({
                 message={message}
                 key={`${message.id ?? ""}`}
                 toastContext={toastContext}
+                previousButtons={getPreviousButtons(message.id)}
                 onMessageClick={(message) => {
                   onMessageClick?.(message);
                 }}
@@ -282,6 +293,7 @@ const HistoricalChat: FC<ChatProps> = ({
                           message={message}
                           key={`${message.id ?? ""}-${i}`}
                           toastContext={toastContext}
+                          previousButtons={getPreviousButtons(message.id)}
                           onMessageClick={(message) => {
                             onMessageClick?.(message);
                           }}
