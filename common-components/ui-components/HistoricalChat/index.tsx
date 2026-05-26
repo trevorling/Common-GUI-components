@@ -13,6 +13,8 @@ import { apiDev } from "../../services/api";
 import ChatEvent from "../../ui-components/ChatEvent";
 import { ToastContextType } from "../../context";
 import { AUTHOR_ROLES } from "../../utils/constants";
+import { parseButtons } from "../../utils/parse-utils";
+import { MessageButton } from "../../types/message";
 
 type ChatProps = {
   chat: ChatType;
@@ -57,7 +59,7 @@ const HistoricalChat: FC<ChatProps> = ({
   onMessageClick,
 }) => {
   const { t } = useTranslation();
-  const chatRef = useRef<HTMLDivElement>(null);
+  const groupWrapperRef = useRef<HTMLDivElement>(null);
   const [messageGroups, setMessageGroups] = useState<GroupedMessage[]>([]);
   const [editingComment, setEditingComment] = useState<string | null>(null);
   const [messagesList, setMessagesList] = useState<Message[]>([]);
@@ -184,12 +186,20 @@ const HistoricalChat: FC<ChatProps> = ({
   }, [messagesList, endUserFullName]);
 
   useEffect(() => {
-    if (!chatRef.current || !messageGroups) return;
-    chatRef.current.scrollIntoView({ block: "end", inline: "end" });
+    if (!groupWrapperRef.current || !messageGroups) return;
+    groupWrapperRef.current.scrollTop = groupWrapperRef.current.scrollHeight;
   }, [messageGroups]);
 
   const isEvent = (group: GroupedMessage) => {
     return (group.type === "event" || group.name.trim() === "" ||  group.messages.some((message) => message.event && message.event !== CHAT_EVENTS.GREETING));
+  };
+
+  const getPreviousButtons = (messageId: string | undefined): MessageButton[] => {
+    const idx = messagesList.findIndex((m) => m.id === messageId);
+    for (let i = idx - 1; i >= 0; i--) {
+      if (messagesList[i].buttons) return parseButtons(messagesList[i]);
+    }
+    return [];
   };
 
   const eventGroup = (group: GroupedMessage) => {
@@ -232,6 +242,7 @@ const HistoricalChat: FC<ChatProps> = ({
                 message={message}
                 key={`${message.id ?? ""}`}
                 toastContext={toastContext}
+                previousButtons={getPreviousButtons(message.id)}
                 onMessageClick={(message) => {
                   onMessageClick?.(message);
                 }}
@@ -247,7 +258,7 @@ const HistoricalChat: FC<ChatProps> = ({
       <div className="historical-chat">
         <div className="historical-chat__body">
           {header_link && <div className={"header-link"}>{header_link}</div>}
-          <div className="historical-chat__group-wrapper">
+          <div className="historical-chat__group-wrapper" ref={groupWrapperRef}>
             {messageGroups?.map((group, index) => (
               <div
                 className={clsx(["historical-chat__group", `historical-chat__group--${group.type}`])}
@@ -282,6 +293,7 @@ const HistoricalChat: FC<ChatProps> = ({
                           message={message}
                           key={`${message.id ?? ""}-${i}`}
                           toastContext={toastContext}
+                          previousButtons={getPreviousButtons(message.id)}
                           onMessageClick={(message) => {
                             onMessageClick?.(message);
                           }}
@@ -292,7 +304,6 @@ const HistoricalChat: FC<ChatProps> = ({
                 )}
               </div>
             ))}
-            <div id="anchor" ref={chatRef}></div>
           </div>
           {lastMessage && (
             <div className="historical-chat__toolbar">
@@ -350,7 +361,6 @@ const HistoricalChat: FC<ChatProps> = ({
             </div>
           )}
         </div>
-        <div id="anchor" ref={chatRef}></div>
       </div>
   );
 };
