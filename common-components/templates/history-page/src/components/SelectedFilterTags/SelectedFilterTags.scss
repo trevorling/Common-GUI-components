@@ -1,0 +1,36 @@
+@import 'src/styles/settings/variables/typography';
+
+.selected-filters__container {
+  display: grid;
+  grid-template-columns: 1fr;
+  grid-template-columns: 24px 1fr auto;
+  margin-bottom: 16px;
+
+  .selected-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+
+    .selected-filters__label {
+      color: #686B78;
+      font-size: $veera-font-size-80;
+      line-height: $veera-font-size-250;
+      // max-height -> border-left is with correct height!
+      max-height: 24px;
+      padding-left: 4px;
+      white-space: nowrap;
+
+      &:not(:first-child):not(:last-child) {
+        border-left: 1px solid #878A97;
+      }
+    }
+
+    .selected-filters__items {
+      display: contents;
+    }
+  }
+
+  button {
+    align-self: start;
+  }
+}

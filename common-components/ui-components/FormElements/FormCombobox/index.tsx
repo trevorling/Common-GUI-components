@@ -11,7 +11,7 @@ import {
 } from 'react';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
-import { MdArrowDropDown, MdSearch } from 'react-icons/md';
+import { MdArrowDropDown, MdExpandMore, MdSearch } from 'react-icons/md';
 
 import { Icon } from '../..';
 import './FormCombobox.scss';
@@ -31,6 +31,7 @@ type FormComboboxBaseProps = {
   readonly disabled?: boolean;
   readonly style?: CSSProperties;
   readonly isSearchEnabled?: boolean;
+  readonly hideInputStyle?: boolean;
 };
 
 type FormComboboxSingleProps = FormComboboxBaseProps & {
@@ -130,6 +131,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   disabled,
   style,
   isSearchEnabled = false,
+  hideInputStyle = false,
   ...props
 }) => {
   const id = useId();
@@ -243,10 +245,13 @@ export const FormCombobox: FC<FormComboboxProps> = ({
       ? selectedOptions.map((option) => option.label).join(', ')
       : placeholderValue
     : selectedOptions[0]?.label ?? placeholderValue;
+  const triggerContent = hideInputStyle ? label ?? triggerLabel : triggerLabel;
 
   const selectClasses = clsx(
     'select',
     disabled && 'select--disabled',
+    isOpen && 'select--open',
+    hideInputStyle && 'select--plain',
   );
 
   return (
@@ -257,13 +262,18 @@ export const FormCombobox: FC<FormComboboxProps> = ({
           id={id}
           type='button'
           className='select__trigger'
+          aria-label={hideInputStyle && typeof label === 'string' ? label : undefined}
           aria-haspopup='listbox'
           aria-expanded={isOpen}
           disabled={disabled}
           onClick={() => setIsOpen((open) => !open)}
         >
-          <span className='select__trigger-text'>{triggerLabel}</span>
-          <Icon label='Dropdown icon' size='medium' icon={<MdArrowDropDown color='#5D6071' />} />
+          <span className='select__trigger-text'>{triggerContent}</span>
+          <Icon
+            label='Dropdown icon'
+            size='medium'
+            icon={hideInputStyle ? <MdExpandMore color='#5D6071' /> : <MdArrowDropDown color='#5D6071' />}
+          />
         </button>
 
         {isOpen && (
@@ -302,7 +312,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
                       onClick={() => selectOption(option)}
                     >
                       <input
-                        type='checkbox'
+                        type={isMultiple ? 'checkbox' : 'radio'}
                         checked={isSelected}
                         value={option.value}
                         onChange={() => null}
