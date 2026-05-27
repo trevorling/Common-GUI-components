@@ -13,12 +13,14 @@ type SelectedFilterTagsProps = {
   readonly showAuthenticatedPerson?: boolean;
   readonly showTestFilter: boolean;
   readonly isTestFilter?: boolean;
+  readonly isPreserveFilter?: boolean;
   readonly domains: string[];
   readonly feedbackRatings: string[];
   readonly status: string[];
   readonly onRemoveCsaFilterTag: (value: string) => void;
   readonly onRemoveAuthenticatedPersonFilterTag: (value: boolean) => void;
   readonly onRemoveTestFilterTag: (value: boolean) => void;
+  readonly onRemovePreserveFilterTag: (value: boolean) => void;
   readonly onRemoveDomainFilterTag: (value: string) => void;
   readonly onRemoveFeedbackRatingFilterTag: (value: string) => void;
   readonly onRemoveStatusFilterTag: (value: string) => void;
@@ -31,12 +33,14 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
   showAuthenticatedPerson,
   showTestFilter,
   isTestFilter,
+  isPreserveFilter,
   domains,
   feedbackRatings,
   status,
   onRemoveCsaFilterTag,
   onRemoveAuthenticatedPersonFilterTag,
   onRemoveTestFilterTag,
+  onRemovePreserveFilterTag,
   onRemoveDomainFilterTag,
   onRemoveFeedbackRatingFilterTag,
   onRemoveStatusFilterTag,
@@ -47,6 +51,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
     csaFilterTagValues.length !== 0 ||
     showAuthenticatedPerson !== undefined ||
     (showTestFilter && isTestFilter !== undefined) ||
+    isPreserveFilter !== undefined ||
     domains.length !== 0 ||
     feedbackRatings.length !== 0 ||
     status.length !== 0;
@@ -93,6 +98,18 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
               <FilterTag
                 text={isTestFilter ? t('global.yes') : t('global.no')}
                 onClick={() => onRemoveTestFilterTag(isTestFilter)}
+              />
+            </div>
+          </>
+        )}
+
+        {isPreserveFilter !== undefined && (
+          <>
+            <p className="selected-filters__label">{t('global.preserve')}:</p>
+            <div className="selected-filters__items">
+              <FilterTag
+                text={isPreserveFilter ? t('global.yes') : t('global.no')}
+                onClick={() => onRemovePreserveFilterTag(isPreserveFilter)}
               />
             </div>
           </>

@@ -247,7 +247,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const timeoutAbortRef = useRef(false);
 
-    const domains = useQuery<DomainSelection[]>({
+    const userWidgetDomains = useQuery<DomainSelection[]>({
         queryKey: ['accounts/widget-data', userInfo?.idCode],
         queryFn: () => getWidgetData(userInfo!.idCode),
         enabled: !!userInfo?.idCode,
@@ -423,14 +423,15 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
 
             const sortBy = getEndedChatsSortBy(data.sorting);
             const currentCustomerSupportIds =  getRealCsaFilterValues(csaIdCodesFilter);
-            const currentFeedbackRatings =  getFeedbackRatingFilterValues(feedbackRatings);
+            const currentFeedbackRatings =  getFeedbackRatingFilterValues(feedbackRatingFilterValues);
             const currentIsTestValues = getBooleanApiFilterValue(isTestFilter);
             const currentShowAuthenticatedPersonValues = getBooleanApiFilterValue(showAuthenticatedPerson);
+            const currentIsPreserveValues = getBooleanApiFilterValue(isPreserveFilter);
 
             return apiDevEnded.post('agents/chats/ended', {
                 startDate: formatISO(startOfDay(new Date(data.startDate))),
                 endDate: formatISO(endOfDay(new Date(data.endDate))),
-                urls: getDomainsArray(data.urls?.length ? data.urls : domains.length > 0 ? domains : currentDomains),
+                urls: getDomainsArray(data.urls?.length ? data.urls : domainFilterValues.length > 0 ? domainFilterValues : currentDomains),
                 showTest: showTest,
                 page: data.pagination.pageIndex + 1,
                 page_size: data.pagination.pageSize,
@@ -440,7 +441,8 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 ...(currentFeedbackRatings.length > 0 && {feedbackRatings: currentFeedbackRatings}),
                 ...(currentIsTestValues.length > 0 && {isTest: currentIsTestValues}),
                 ...(currentShowAuthenticatedPersonValues.length > 0 && {authenticatedChats: currentShowAuthenticatedPersonValues}),
-                ...(status.length > 0 && {status}),
+                ...(currentIsPreserveValues.length > 0 && {isPreserve: currentIsPreserveValues}),
+                ...(statusFilterValues.length > 0 && {status: statusFilterValues}),
             },
                 {
                     signal: abortRef.current.signal
@@ -908,6 +910,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         readonly feedbackRatings: string[];
         readonly showAuthenticatedPerson?: boolean;
         readonly isTestFilter?: boolean;
+        readonly isPreserveFilter?: boolean;
         readonly domains: string[];
         readonly status: string[];
     }>({
@@ -916,6 +919,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             feedbackRatings: [],
             showAuthenticatedPerson: undefined,
             isTestFilter: undefined,
+            isPreserveFilter: undefined,
             domains: [],
             status: [],
         },
@@ -925,6 +929,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const feedbackRatings = tableHeaderForm.watch('feedbackRatings');
     const showAuthenticatedPerson = tableHeaderForm.watch('showAuthenticatedPerson');
     const isTestFilter = tableHeaderForm.watch('isTestFilter');
+    const isPreserveFilter = tableHeaderForm.watch('isPreserveFilter');
     const domains = tableHeaderForm.watch('domains');
     const status = tableHeaderForm.watch('status');
 
@@ -947,7 +952,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             sorting,
             search,
         });
-    }, [csaIdCodesFilter, feedbackRatings, showAuthenticatedPerson, isTestFilter, domains, status]);
+    }, [csaIdCodesFilter, feedbackRatings, showAuthenticatedPerson, isTestFilter, isPreserveFilter, domains, status]);
 
     const getBooleanComboboxValue = (value?: boolean) =>
         value === undefined ? '' : String(value);
@@ -955,8 +960,36 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         value ? value === 'true' : undefined;
     const getBooleanApiFilterValue = (value?: boolean) =>
         value === undefined ? [] : [value];
-    const getRealCsaFilterValues = (values: string[]) =>
+    const getRealStringFilterValues = (values: string[]) =>
         values.filter((value) => value !== ALL_COLUMNS_VALUE);
+    const getAllStringFilterValues = (options: { readonly value: string }[]) =>
+        getRealStringFilterValues(options.map((option) => option.value));
+    const normalizeAllOptionFilterValues = (
+        values: string[],
+        currentValues: string[],
+        allValues: string[]
+    ) => {
+        const currentAllSelected = currentValues.includes(ALL_COLUMNS_VALUE);
+        const nextAllSelected = values.includes(ALL_COLUMNS_VALUE);
+
+        if (nextAllSelected && !currentAllSelected) {
+            return [ALL_COLUMNS_VALUE, ...allValues];
+        }
+
+        if (!nextAllSelected && currentAllSelected) {
+            return [];
+        }
+
+        const realValues = getRealStringFilterValues(values);
+
+        if (allValues.length > 0 && allValues.every((value) => realValues.includes(value))) {
+            return [ALL_COLUMNS_VALUE, ...allValues];
+        }
+
+        return realValues;
+    };
+    const getRealCsaFilterValues = (values: string[]) =>
+        getRealStringFilterValues(values);
     const getAllCsaFilterValues = () =>
         getRealCsaFilterValues(customerSupportAgentsQuery.data?.map((option) => option.value) ?? []);
     const getFeedbackRatingFilterValues = (values: string[]) =>
@@ -998,7 +1031,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         );
     };
     const removeSelectedBooleanFilterTag = (
-        fieldName: 'showAuthenticatedPerson' | 'isTestFilter',
+        fieldName: 'showAuthenticatedPerson' | 'isTestFilter' | 'isPreserveFilter',
         _value: boolean
     ) => {
         setTableHeaderValue(fieldName, undefined);
@@ -1008,7 +1041,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         values: string[],
         value: string
     ) => {
-        setTableHeaderValue(fieldName, values.filter((item) => item !== value));
+        setTableHeaderValue(fieldName, getRealStringFilterValues(values).filter((item) => item !== value));
     };
 
     const globalFeedbackConfigQuery = useQuery<FeedbackConfig>({
@@ -1016,7 +1049,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         queryFn: loadFeedbackConfig,
     });
 
-    const ratingOptions = useMemo(() => {
+    const realRatingOptions = useMemo(() => {
         const isFiveRatingScale = isFiveRatingScaleEnabled(globalFeedbackConfigQuery.data?.isFiveRatingScale);
         const ratingMin = isFiveRatingScale ? 1 : 0;
         const ratingMax = isFiveRatingScale ? 5 : 10;
@@ -1031,12 +1064,39 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         });
     }, [globalFeedbackConfigQuery.data?.isFiveRatingScale]);
 
-    const statusOptions = useMemo(() => {
+    const ratingOptions = useMemo(() => [
+        { label: t('chat.history.chooseAll'), value: ALL_COLUMNS_VALUE },
+        ...realRatingOptions,
+    ], [t, realRatingOptions]);
+
+    const realStatusOptions = useMemo(() => {
         return CHAT_STATUSES.map((chatStatus) => ({
             label: t(`chat.plainEvents.${chatStatus}`),
             value: chatStatus,
         }));
     }, [t]);
+
+    const statusOptions = useMemo(() => [
+        { label: t('chat.history.chooseAll'), value: ALL_COLUMNS_VALUE },
+        ...realStatusOptions,
+    ], [t, realStatusOptions]);
+
+    const domainOptions = useMemo(() => [
+        { label: t('chat.history.chooseAll'), value: ALL_COLUMNS_VALUE },
+        ...currentDomains.map((domain) => ({
+            label: domain,
+            value: domain,
+        })),
+    ], [t, currentDomains]);
+
+    const feedbackRatingFilterValues = getRealStringFilterValues(feedbackRatings);
+    const statusFilterValues = getRealStringFilterValues(status);
+    const domainFilterValues = getRealStringFilterValues(domains);
+
+    const booleanFilterOptions = useMemo(() => [
+        { label: t('global.yes') ?? '', value: 'true' },
+        { label: t('global.no') ?? '', value: 'false' },
+    ], [t]);
 
     const endedChatsColumns = useMemo(() => {
         const columns = [
@@ -1107,10 +1167,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                         return (
                             <HeaderCombobox
                                 label={t('chat.history.authenticatedPerson') ?? ''}
-                                options={[
-                                    { label: t('global.yes') ?? '', value: 'true', },
-                                    { label: t('global.no') ?? '', value: 'false' }
-                                ]}
+                                options={booleanFilterOptions}
                                 value={getBooleanComboboxValue(showAuthenticatedPerson)}
                                 onChange={(value) => {
                                     setTableHeaderValue('showAuthenticatedPerson', getBooleanFormValue(value));
@@ -1137,10 +1194,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                         return (
                             <HeaderCombobox
                                 label={t('global.test')}
-                                options={[
-                                    { label: t('global.yes'), value: 'true', },
-                                    { label: t('global.no'), value: 'false' }
-                                ]}
+                                options={booleanFilterOptions}
                                 value={getBooleanComboboxValue(isTestFilter)}
                                 onChange={(value) => {
                                     setTableHeaderValue('isTestFilter', getBooleanFormValue(value));
@@ -1157,7 +1211,20 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             ] : [],
             columnHelper.accessor('isPreserve', {
                 id: 'isPreserve',
-                header: t('global.preserve'),
+                header: () => {
+                    return (
+                        <HeaderCombobox
+                            label={t('global.preserve')}
+                            options={booleanFilterOptions}
+                            value={getBooleanComboboxValue(isPreserveFilter)}
+                            onChange={(value) => {
+                                setTableHeaderValue('isPreserveFilter', getBooleanFormValue(value));
+                            }}
+                            multiple={false}
+                            isSearchEnabled={false}
+                        />
+                    );
+                },
                 cell: markConversationAsPreserve,
                 sortDescFirst: false,
             }),
@@ -1177,7 +1244,14 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             options={ratingOptions}
                             value={feedbackRatings}
                             onChange={(value) => {
-                                setTableHeaderValue('feedbackRatings', value);
+                                setTableHeaderValue(
+                                    'feedbackRatings',
+                                    normalizeAllOptionFilterValues(
+                                        value,
+                                        feedbackRatings,
+                                        getAllStringFilterValues(realRatingOptions)
+                                    )
+                                );
                             }}
                         />
                     );
@@ -1204,7 +1278,14 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             options={statusOptions}
                             value={status}
                             onChange={(value) => {
-                                setTableHeaderValue('status', value);
+                                setTableHeaderValue(
+                                    'status',
+                                    normalizeAllOptionFilterValues(
+                                        value,
+                                        status,
+                                        getAllStringFilterValues(realStatusOptions)
+                                    )
+                                );
                             }}
                             isSearchEnabled={true}
                         />
@@ -1243,14 +1324,12 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                         <HeaderCombobox
                             label={t('chat.history.www') ?? ''}
                             value={domains}
-                            options={currentDomains.map((domain)=> {
-                                return {
-                                    label: domain,
-                                    value: domain,
-                                }
-                            })}
+                            options={domainOptions}
                             onChange={(value) => {
-                                setTableHeaderValue('domains', value);
+                                setTableHeaderValue(
+                                    'domains',
+                                    normalizeAllOptionFilterValues(value, domains, currentDomains)
+                                );
                             }}
                         />
                     );
@@ -1278,11 +1357,16 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         feedbackRatings,
         showAuthenticatedPerson,
         isTestFilter,
+        isPreserveFilter,
         domains,
         status,
         statusOptions,
+        realStatusOptions,
         currentDomains,
         ratingOptions,
+        realRatingOptions,
+        domainOptions,
+        booleanFilterOptions,
     ])
 
     const getSortingString = () => {
@@ -1471,10 +1555,10 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 language: i18n.language,
                 startDate: formatISO(startOfDay(new Date(startDate))),
                 endDate: formatISO(endOfDay(new Date(endDate))),
-                urls: getDomainsArray(domains.length > 0 ? domains : currentDomains),
+                urls: getDomainsArray(domainFilterValues.length > 0 ? domainFilterValues : currentDomains),
                 sorting: sortBy,
                 search,
-                ...(status.length > 0 && {status}),
+                ...(statusFilterValues.length > 0 && {status: statusFilterValues}),
             });
             const downloadData = response.data.response.data;
 
@@ -1498,13 +1582,14 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             feedbackRatings: [],
             showAuthenticatedPerson: undefined,
             isTestFilter: undefined,
+            isPreserveFilter: undefined,
             domains: [],
             status: [],
         });
     };
 
     const selectedChatDomainUuid = useMemo(() => {
-        return domains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
+        return userWidgetDomains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
     }, [selectedChat]);
     const qualitySettingsConfigQuery = useQuery<QualitySettingsConfig>({
         queryKey: ['configs/chat-analysis'],
@@ -1796,9 +1881,10 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 showAuthenticatedPerson={showAuthenticatedPerson}
                 showTestFilter={testMessageEnabled}
                 isTestFilter={isTestFilter}
-                domains={domains}
-                feedbackRatings={feedbackRatings}
-                status={status}
+                isPreserveFilter={isPreserveFilter}
+                domains={domainFilterValues}
+                feedbackRatings={feedbackRatingFilterValues}
+                status={statusFilterValues}
                 onRemoveCsaFilterTag={removeSelectedCsaFilterTag}
                 onRemoveAuthenticatedPersonFilterTag={(item) =>
                     removeSelectedBooleanFilterTag('showAuthenticatedPerson', item)
@@ -1806,14 +1892,17 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 onRemoveTestFilterTag={(item) =>
                     removeSelectedBooleanFilterTag('isTestFilter', item)
                 }
+                onRemovePreserveFilterTag={(item) =>
+                    removeSelectedBooleanFilterTag('isPreserveFilter', item)
+                }
                 onRemoveDomainFilterTag={(item) =>
-                    removeSelectedStringFilterTag('domains', domains, item)
+                    removeSelectedStringFilterTag('domains', domainFilterValues, item)
                 }
                 onRemoveFeedbackRatingFilterTag={(item) =>
-                    removeSelectedStringFilterTag('feedbackRatings', feedbackRatings, item)
+                    removeSelectedStringFilterTag('feedbackRatings', feedbackRatingFilterValues, item)
                 }
                 onRemoveStatusFilterTag={(item) =>
-                    removeSelectedStringFilterTag('status', status, item)
+                    removeSelectedStringFilterTag('status', statusFilterValues, item)
                 }
                 onClearFiltersClick={onClearFilersClick}
             />
