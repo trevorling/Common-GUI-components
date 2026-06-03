@@ -4,6 +4,12 @@ All changes to this project will be documented in this file.
 
 ## Template [MajorVersion.MediterraneanVersion.MinorVersion] - DD-MM-YYYY
 
+## [0.0.59] - 05.06.2026
+
+- Quality measurements in chat history view
+- Column sorting and filtering
+- Analytics: theme, follow up action, response quality
+
 ## [0.0.58] - 25.05.2026
 
 - Properly render mcq selected button

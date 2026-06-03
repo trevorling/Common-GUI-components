@@ -17,15 +17,26 @@ type SelectedFilterTagsProps = {
   readonly domains: string[];
   readonly feedbackRatings: string[];
   readonly status: string[];
-  readonly onRemoveCsaFilterTag: (value: string) => void;
-  readonly onRemoveAuthenticatedPersonFilterTag: (value: boolean) => void;
-  readonly onRemoveTestFilterTag: (value: boolean) => void;
-  readonly onRemovePreserveFilterTag: (value: boolean) => void;
-  readonly onRemoveDomainFilterTag: (value: string) => void;
-  readonly onRemoveFeedbackRatingFilterTag: (value: string) => void;
-  readonly onRemoveStatusFilterTag: (value: string) => void;
+  readonly theme: string[];
+  readonly responseQuality: string[];
+  readonly followUpStatus: string[];
+  readonly onRemove: (filter: SelectedFilterTagFilter, value: SelectedFilterTagValue) => void;
   readonly onClearFiltersClick: () => void;
 };
+
+type SelectedFilterTagFilter =
+  | 'csaIdCodesFilter'
+  | 'showAuthenticatedPerson'
+  | 'isTestFilter'
+  | 'isPreserveFilter'
+  | 'domains'
+  | 'feedbackRatings'
+  | 'status'
+  | 'theme'
+  | 'responseQuality'
+  | 'followUpStatus';
+
+type SelectedFilterTagValue = string | boolean;
 
 const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
   csaFilterTagValues,
@@ -37,13 +48,10 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
   domains,
   feedbackRatings,
   status,
-  onRemoveCsaFilterTag,
-  onRemoveAuthenticatedPersonFilterTag,
-  onRemoveTestFilterTag,
-  onRemovePreserveFilterTag,
-  onRemoveDomainFilterTag,
-  onRemoveFeedbackRatingFilterTag,
-  onRemoveStatusFilterTag,
+  theme,
+  responseQuality,
+  followUpStatus,
+  onRemove,
   onClearFiltersClick,
 }) => {
   const { t } = useTranslation();
@@ -54,7 +62,10 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
     isPreserveFilter !== undefined ||
     domains.length !== 0 ||
     feedbackRatings.length !== 0 ||
-    status.length !== 0;
+    status.length !== 0 ||
+    theme.length !== 0 ||
+    responseQuality.length !== 0 ||
+    followUpStatus.length !== 0;
 
   if (!hasSelectedFilterTags) {
     return null;
@@ -72,7 +83,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
                 <FilterTag
                   key={index}
                   text={getCsaFilterTagLabel(item)}
-                  onClick={() => onRemoveCsaFilterTag(item)}
+                  onClick={() => onRemove('csaIdCodesFilter', item)}
                 />
               ))}
             </div>
@@ -85,7 +96,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
             <div className="selected-filters__items">
               <FilterTag
                 text={showAuthenticatedPerson ? t('global.yes') : t('global.no')}
-                onClick={() => onRemoveAuthenticatedPersonFilterTag(showAuthenticatedPerson)}
+                onClick={() => onRemove('showAuthenticatedPerson', showAuthenticatedPerson)}
               />
             </div>
           </>
@@ -97,7 +108,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
             <div className="selected-filters__items">
               <FilterTag
                 text={isTestFilter ? t('global.yes') : t('global.no')}
-                onClick={() => onRemoveTestFilterTag(isTestFilter)}
+                onClick={() => onRemove('isTestFilter', isTestFilter)}
               />
             </div>
           </>
@@ -109,7 +120,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
             <div className="selected-filters__items">
               <FilterTag
                 text={isPreserveFilter ? t('global.yes') : t('global.no')}
-                onClick={() => onRemovePreserveFilterTag(isPreserveFilter)}
+                onClick={() => onRemove('isPreserveFilter', isPreserveFilter)}
               />
             </div>
           </>
@@ -123,7 +134,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
                 <FilterTag
                   key={index}
                   text={item}
-                  onClick={() => onRemoveDomainFilterTag(item)}
+                  onClick={() => onRemove('domains', item)}
                 />
               ))}
             </div>
@@ -138,7 +149,7 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
                 <FilterTag
                   key={index}
                   text={item}
-                  onClick={() => onRemoveFeedbackRatingFilterTag(item)}
+                  onClick={() => onRemove('feedbackRatings', item)}
                 />
               ))}
             </div>
@@ -153,7 +164,52 @@ const SelectedFilterTags: FC<SelectedFilterTagsProps> = ({
                 <FilterTag
                   key={index}
                   text={t(`chat.plainEvents.${item}`)}
-                  onClick={() => onRemoveStatusFilterTag(item)}
+                  onClick={() => onRemove('status', item)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {theme.length !== 0 && (
+          <>
+            <p className="selected-filters__label">{t('chat.history.theme')}:</p>
+            <div className="selected-filters__items">
+              {theme.map((item, index) => (
+                <FilterTag
+                  key={index}
+                  text={item}
+                  onClick={() => onRemove('theme', item)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {responseQuality.length !== 0 && (
+          <>
+            <p className="selected-filters__label">{t('chat.history.responseQuality')}:</p>
+            <div className="selected-filters__items">
+              {responseQuality.map((item, index) => (
+                <FilterTag
+                  key={index}
+                  text={item}
+                  onClick={() => onRemove('responseQuality', item)}
+                />
+              ))}
+            </div>
+          </>
+        )}
+
+        {followUpStatus.length !== 0 && (
+          <>
+            <p className="selected-filters__label">{t('chat.history.followUpStatus')}:</p>
+            <div className="selected-filters__items">
+              {followUpStatus.map((item, index) => (
+                <FilterTag
+                  key={index}
+                  text={item}
+                  onClick={() => onRemove('followUpStatus', item)}
                 />
               ))}
             </div>

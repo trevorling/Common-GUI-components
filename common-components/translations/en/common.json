@@ -185,6 +185,9 @@
       "chooseConversationResponseQuality": "- Select response quality -",
       "chooseConversationTheme": "- Select chat theme -",
       "conversationTheme": "Chat theme",
+      "theme": "Theme",
+      "responseQuality": "Bürokratt Response Quality",
+      "followUpStatus": "Follow-up Status",
       "analysis": "Analysis"
     },
     "plainEvents": {
