@@ -17,6 +17,14 @@
   overflow: hidden;
 }
 
+.history-header-combobox {
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.data-table th:has(.history-header-combobox .select--open) {
+  z-index: 10001 !important;
+}
 
 .card-drawer-container {
   display: flex;

@@ -91,6 +91,9 @@ export interface Chat {
     isPreserve?: boolean;
     isFiveRatingScale?: string;
     allCsa?: string[];
+    theme?: string[];
+    responseQuality?: string[];
+    followUpStatus?: string[];
     totalPages?: number;
     totalCount?: number;
 }

@@ -163,6 +163,7 @@
       "endTime": "Lõppaeg",
       "csaName": "Nõustaja nimi",
       "contact": "Kontaktandmed",
+      "www": "Veebileht",
       "authenticatedPerson": "Autenditud isik",
       "comment": "Kommentaar",
       "label": "Märksõna",
@@ -184,6 +185,9 @@
       "chooseConversationResponseQuality": "- Vali vastuse kvaliteet -",
       "chooseConversationTheme": "- Vali vestluse valdkond -",
       "conversationTheme": "Vestluse valdkond",
+      "theme": "Valdkond",
+      "responseQuality": "Bürokrati vastuse kvaliteet",
+      "followUpStatus": "Järeltegevuste staatus",
       "analysis": "Analüüs"
     },
     "plainEvents": {
