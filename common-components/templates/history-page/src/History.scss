@@ -90,7 +90,13 @@
   font-size: $veera-font-size-80;
   gap: 4px;
   overflow-y: auto;
-  padding: get-spacing(haapsalu);
+  position: relative;
+
+  .side-meta__content {
+    display: grid;
+    gap: 4px;
+    padding: get-spacing(haapsalu);
+  }
 }
 
 .spinner {

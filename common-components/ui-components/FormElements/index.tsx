@@ -21,3 +21,4 @@ export {
     FormDatepicker,
     SwitchBox,
 };
+export * from './FormCombobox';
