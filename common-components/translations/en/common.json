@@ -289,6 +289,12 @@
         "requestedAt": "Requested At",
         "approve": "Approve"
       }
+    },
+    "quality": {
+      "theme": "Chat theme",
+      "responseQuality": "Chat response quality",
+      "followUpAction": "Follow-up action",
+      "selectionEmptied": "Selection emptied"
     }
   },
   "deleteConversation": {

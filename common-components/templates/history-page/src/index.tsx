@@ -1,6 +1,6 @@
-import {FC, PropsWithChildren, useEffect, useMemo, useRef, useState} from 'react';
+import {ComponentProps, FC, PropsWithChildren, useEffect, useMemo, useRef, useState} from 'react';
 import {useTranslation} from 'react-i18next';
-import {useMutation} from '@tanstack/react-query';
+import {useMutation, useQuery, useQueryClient} from '@tanstack/react-query';
 import {ColumnPinningState, createColumnHelper, PaginationState, SortingState,} from '@tanstack/react-table';
 import {endOfDay, format, formatISO, startOfDay} from "date-fns";
 import {AxiosError} from 'axios';
@@ -40,6 +40,7 @@ import {getDomainsArray} from "../../../utils/multiDomain-utils";
 import {StoreState} from "../../../store";
 import {saveFile} from "../../../services/file";
 import {ChatMetadataPanel, QualitySettings} from './components';
+import { CharMeasurementType } from './types';
 
 type HistoryProps = {
     user: UserInfo | null;
@@ -64,6 +65,77 @@ type ExportResult = {
     chatIds: string[];
 };
 
+type QualitySettingsOption = {
+    readonly label: string;
+    readonly value: string;
+};
+
+type QualitySettingsConfig = {
+    readonly chatAnalysisEnabled: boolean;
+    readonly chatAnalysisTheme: string[];
+    readonly chatAnalysisBykResponseQuality: string[];
+    readonly chatAnalysisFollowUpAction: string[];
+};
+
+export type DomainSelection = {
+    readonly id: string;
+    readonly name: string;
+    readonly url: string;
+    readonly selected: boolean;
+};
+
+export const MEASUREMENT_TYPES = {
+    THEME: 'THEME',
+    QUALITY: 'QUALITY',
+    FOLLOW_UP_ACTION: 'FOLLOW_UP_ACTION',
+} as const;
+
+export type MeasurementType =
+    (typeof MEASUREMENT_TYPES)[keyof typeof MEASUREMENT_TYPES];
+
+
+export const postQualityMeasurements = (body: {
+    readonly chatUuid: string;
+    readonly type: MeasurementType;
+    readonly value: string | string[];
+}) =>
+    apiDev.post('chats/quality/measurements', body);
+
+export const getQualityMeasurements = (params: {
+    readonly chatUuid: string;
+}) =>
+    apiDev.get<{
+        readonly response: CharMeasurementType[];
+    }>('chats/quality/measurements', { params });
+
+export const getWidgetData = async (userId: string) => {
+    const { data } = await apiDev.get<DomainSelection[]>('accounts/widget-data', {
+        params: {
+            user_id: userId,
+        },
+    });
+    return data;
+}
+
+const loadQualitySettingsConfig = async (domain: string): Promise<QualitySettingsConfig> => {
+    const response = await apiDev.get<{
+        readonly response: {
+            readonly chatAnalysisEnabled: boolean;
+            readonly chatAnalysisTheme: string; // can be an empty string if no themes are defined
+            readonly chatAnalysisBykResponseQuality: string; // can be an empty string if no qualities are defined
+            readonly chatAnalysisFollowUpAction: string; // can be an empty string if no follow-up actions are defined
+        };
+    }>('/configs/chat-analysis', {
+        params: { domain },
+    });
+    return {
+        chatAnalysisEnabled: response.data.response.chatAnalysisEnabled,
+        chatAnalysisTheme: response.data.response.chatAnalysisTheme.split(',').filter(Boolean),
+        chatAnalysisBykResponseQuality: response.data.response.chatAnalysisBykResponseQuality.split(',').filter(Boolean),
+        chatAnalysisFollowUpAction: response.data.response.chatAnalysisFollowUpAction.split(',').filter(Boolean),
+    };
+}
+
 const ALL_COLUMNS_VALUE = '__all__';
 
 const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
@@ -83,6 +155,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                                               delegatedStartDate = null
                                                           }) => {
     const {t, i18n} = useTranslation();
+    const queryClient = useQueryClient();
     const toast = toastContext;
     const userInfo = user;
     const routerLocation = useLocation();
@@ -130,6 +203,12 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const abortRef = useRef<AbortController | null>(null);
     const loadingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
     const timeoutAbortRef = useRef(false);
+
+    const domains = useQuery<DomainSelection[]>({
+        queryKey: ['accounts/widget-data', userInfo?.idCode],
+        queryFn: () => getWidgetData(userInfo!.idCode),
+        enabled: !!userInfo?.idCode,
+    });
 
     const parseDateParam = (dateString: string | null) => {
       if (!dateString) return new Date();
@@ -859,7 +938,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             columns.splice(4, 0, columnHelper.accessor('istest', {
                 id: 'istest',
                 header: t('global.test') ?? '',
-                cell: markConversationAsTest
+                cell: markConversationAsTest,
             }));
         }
 
@@ -1096,6 +1175,139 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         });
     };
 
+    const selectedChatDomainUuid = useMemo(() => {
+        return domains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
+    }, [selectedChat]);
+    const qualitySettingsConfigQuery = useQuery<QualitySettingsConfig>({
+        queryKey: ['configs/chat-analysis'],
+        queryFn: () => loadQualitySettingsConfig(selectedChatDomainUuid!),
+        enabled: !!selectedChat && !!selectedChatDomainUuid,
+    });
+
+    const chatQualityMeasurementQuery = useQuery({
+        queryKey: ['chats/quality/measurements', selectedChat?.id],
+        queryFn: () => getQualityMeasurements({ chatUuid: selectedChat!.id }),
+        enabled: !!selectedChat?.id,
+    });
+
+    const selectedQualityMeasurements = useMemo(() => {
+        const measurements = chatQualityMeasurementQuery.data?.data.response ?? [];
+
+        const latest = {
+            theme: {
+                time: Number.NEGATIVE_INFINITY,
+                values: [] as string[],
+            },
+            quality: {
+                time: Number.NEGATIVE_INFINITY,
+                value: '',
+            },
+            followUp: {
+                time: Number.NEGATIVE_INFINITY,
+                value: '',
+            },
+        };
+
+        measurements.forEach(({ type, value, createdAt }) => {
+            const parsedTime = Date.parse(createdAt);
+            const time = Number.isNaN(parsedTime) ? 0 : parsedTime;
+
+            if (type === MEASUREMENT_TYPES.THEME) {
+                if (time > latest.theme.time) {
+                    latest.theme.time = time;
+                    latest.theme.values = value ? [value] : [];
+                } else if (time === latest.theme.time && value) {
+                    latest.theme.values.push(value);
+                }
+
+                return;
+            }
+
+
+            if (type === MEASUREMENT_TYPES.QUALITY && time >= latest.quality.time) {
+                latest.quality.time = time;
+                latest.quality.value = value;
+                return;
+            }
+
+            if (type === MEASUREMENT_TYPES.FOLLOW_UP_ACTION && time >= latest.followUp.time) {
+                latest.followUp.time = time;
+                latest.followUp.value = value;
+                return;
+            }
+        });
+
+        return {
+            theme: latest.theme.values,
+            quality: latest.quality.value,
+            followUp: latest.followUp.value,
+        };
+    }, [chatQualityMeasurementQuery.data]);
+
+    const chatQualityMeasurementMutation = useMutation({
+        mutationFn: postQualityMeasurements,
+        onSuccess: (_data, variables) => {
+            queryClient.invalidateQueries({
+                queryKey: ['chats/quality/measurements', variables.chatUuid],
+            });
+        },
+        onError: (error: AxiosError) => {
+            toast?.open({
+                type: 'error',
+                title: t('global.notificationError'),
+                message: error.message,
+            });
+        },
+    });
+
+    const saveChatQualityMeasurement = async (
+        type: MeasurementType,
+        value: string | string[],
+        successMessage: string
+    ) => {
+        if (!selectedChat?.id) return;
+
+        try {
+            await chatQualityMeasurementMutation.mutateAsync({
+                chatUuid: selectedChat.id,
+                type,
+                value,
+            });
+
+            toast?.open({
+                type: 'success',
+                title: t('global.notification'),
+                message: successMessage,
+            });
+        } catch {
+            // Error toast is handled by the mutation's onError callback.
+        }
+    };
+
+    const onChatThemeChange = async (value: string[]) => {
+        // TODO: array support in backend
+            saveChatQualityMeasurement(
+                MEASUREMENT_TYPES.THEME,
+                value,
+                t('toast.success.conversationThemeSaved')
+            )
+    }
+
+    const onChatQualityChange = async (value: string) => {
+        await saveChatQualityMeasurement(
+            MEASUREMENT_TYPES.QUALITY,
+            value,
+            t('toast.success.conversationQualitySaved')
+        );
+    }
+    const onChatFollowUpChange = async (value: string) => {
+        await saveChatQualityMeasurement(
+            MEASUREMENT_TYPES.FOLLOW_UP_ACTION,
+            value,
+            t('toast.success.conversationFollowUpActionSaved')
+        );
+    }
+
     if (!filteredEndedChatsList) return <>Loading... {{filteredEndedChatsList}} something is wrong </>;
 
     return (
@@ -1255,7 +1467,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                     <ClearFiltersButton style={{ marginLeft: 'auto' }} onClick={onClearFilersClick} />
                 </Track>
             )}
-            <div className="card-drawer-container">
+            <div className="card-drawer-container" style={{height: '100%', overflow: 'auto', maxHeight: '60vh'}}>
                 <div className="card-wrapper">
                     <Card>
                         <DataTable
@@ -1329,30 +1541,37 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                 />
                             </Drawer>
                         </div>
-                            <ChatMetadataPanel chat={selectedChat}>
-                                <QualitySettings theme={{
-                                    onChange: (value: string[]) => {
-                                        throw new Error('Function not implemented.');
-                                    },
-                                    options: [],
-                                    value: []
-                                }} quality={{
-                                    onChange: (value: string) => {
-                                        throw new Error('Function not implemented.');
-                                    },
-                                    options: [],
-                                    value: undefined
-                                }} followUp={{
-                                    onChange: (value: string) => {
-                                        throw new Error('Function not implemented.');
-                                    },
-                                    options: [],
-                                    value: undefined
-                                }} /> 
+                            <ChatMetadataPanel
+                                chat={selectedChat}
+                                chatMeasurments={chatQualityMeasurementQuery.data?.data.response ?? []}
+                            >
+                                <QualitySettings
+                                    theme={{
+                                        onChange: (value) => onChatThemeChange(value),
+                                        options: qualitySettingsConfigQuery.data?.chatAnalysisTheme.map(item => {
+                                            return { label: item, value: item }
+                                        }) ?? [],
+                                        value: selectedQualityMeasurements.theme,
+                                    }}
+                                    quality={{
+                                        onChange: (value) => onChatQualityChange(value),
+                                        options: qualitySettingsConfigQuery.data?.chatAnalysisBykResponseQuality.map(item => {
+                                            return { label: item, value: item }
+                                        }) ?? [],
+                                        value: selectedQualityMeasurements.quality,
+                                    }}
+                                    followUp={{
+                                        onChange: (value) => onChatFollowUpChange(value),
+                                        options: qualitySettingsConfigQuery.data?.chatAnalysisFollowUpAction.map(item => {
+                                            return { label: item, value: item }
+                                        }) ?? [],
+                                        value: selectedQualityMeasurements.followUp,
+                                    }}
+                                />
                             </ChatMetadataPanel>
-                    </>
-                )}
-            </div>
+                        </>
+                    )}
+                </div>
             </div>
 
             {statusChangeModal && (
