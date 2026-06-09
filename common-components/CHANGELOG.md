@@ -4,6 +4,12 @@ All changes to this project will be documented in this file.
 
 ## Template [MajorVersion.MediterraneanVersion.MinorVersion] - DD-MM-YYYY
 
+
+## [0.0.60] - 09.06.2026
+
+- History table: theme, follow up, quality sorting
+- History table: header filter positioning
+
 ## [0.0.59] - 05.06.2026
 
 - Quality measurements in chat history view

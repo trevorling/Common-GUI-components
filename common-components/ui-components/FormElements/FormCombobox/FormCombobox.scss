@@ -159,6 +159,17 @@
     margin-bottom: 3px;
   }
 
+  &__menu--portal {
+    display: block;
+    position: fixed;
+    top: 100%;
+    bottom: auto;
+    right: auto;
+    margin-top: 3px;
+    margin-bottom: 0;
+    z-index: 10000;
+  }
+
   &__options {
     max-height: 224px;
     overflow: auto;

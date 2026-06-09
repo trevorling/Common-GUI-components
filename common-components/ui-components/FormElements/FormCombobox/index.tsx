@@ -5,10 +5,12 @@ import {
   ReactNode,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState
 } from 'react';
+import { createPortal } from 'react-dom';
 import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { MdArrowDropDown, MdExpandMore, MdSearch } from 'react-icons/md';
@@ -32,6 +34,7 @@ type FormComboboxBaseProps = {
   readonly style?: CSSProperties;
   readonly isSearchEnabled?: boolean;
   readonly hideInputStyle?: boolean;
+  readonly isMenuPortaled?: boolean;
 };
 
 type FormComboboxSingleProps = FormComboboxBaseProps & {
@@ -132,6 +135,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   style,
   isSearchEnabled = false,
   hideInputStyle = false,
+  isMenuPortaled = false,
   ...props
 }) => {
   const id = useId();
@@ -144,7 +148,10 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   const [internalMultipleValue, setInternalMultipleValue] = useState<string[]>(
     getInitialMultipleValue(props)
   );
+  const [menuStyle, setMenuStyle] = useState<CSSProperties>({});
   const wrapperRef = useRef<HTMLDivElement | null>(null);
+  const triggerRef = useRef<HTMLButtonElement | null>(null);
+  const menuRef = useRef<HTMLDivElement | null>(null);
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const isMultiple = props.multiple === true;
@@ -167,6 +174,34 @@ export const FormCombobox: FC<FormComboboxProps> = ({
     options.filter((option) => selectedValues.includes(option.value))
   ), [options, selectedValues]);
 
+  const updateMenuPosition = () => {
+    const triggerRect = triggerRef.current?.getBoundingClientRect();
+
+    if (!triggerRect) return;
+
+    const offset = 3;
+
+    setMenuStyle({
+      left: triggerRect.left,
+      minWidth: hideInputStyle ? 296 : triggerRect.width,
+      top: triggerRect.bottom + offset,
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!isOpen || !isMenuPortaled) return;
+
+    updateMenuPosition();
+
+    window.addEventListener('resize', updateMenuPosition);
+    document.addEventListener('scroll', updateMenuPosition, true);
+
+    return () => {
+      window.removeEventListener('resize', updateMenuPosition);
+      document.removeEventListener('scroll', updateMenuPosition, true);
+    };
+  }, [hideInputStyle, isMenuPortaled, isOpen]);
+
   useEffect(() => {
     if (isOpen) {
       searchInputRef.current?.focus();
@@ -175,7 +210,12 @@ export const FormCombobox: FC<FormComboboxProps> = ({
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
-      if (!wrapperRef.current?.contains(event.target as Node)) {
+      const target = event.target as Node;
+
+      if (
+        !wrapperRef.current?.contains(target) &&
+        !menuRef.current?.contains(target)
+      ) {
         setIsOpen(false);
         setQuery('');
       }
@@ -189,7 +229,12 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   }, []);
 
   const closeOnFocusOutside = (event: ReactFocusEvent<HTMLDivElement>) => {
-    if (!event.currentTarget.contains(event.relatedTarget)) {
+    const relatedTarget = event.relatedTarget as Node | null;
+
+    if (
+      !event.currentTarget.contains(relatedTarget) &&
+      !menuRef.current?.contains(relatedTarget)
+    ) {
       setIsOpen(false);
       setQuery('');
     }
@@ -254,11 +299,70 @@ export const FormCombobox: FC<FormComboboxProps> = ({
     hideInputStyle && 'select--plain',
   );
 
+  const menu = (
+    <div
+      ref={menuRef}
+      className={clsx(
+        'select__menu select__menu--combobox',
+        isMenuPortaled && 'select__menu--portal'
+      )}
+      style={isMenuPortaled ? menuStyle : undefined}
+    >
+      {
+        isSearchEnabled && <div className='select__search'>
+          <Icon
+            label='Search icon'
+            size='medium'
+            className='select__search-icon'
+            icon={<MdSearch className='search__icon-size' color='#5D6071' />}
+          />
+          <input
+            ref={searchInputRef}
+            className='select__search-input'
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder={searchPlaceholder ?? t('global.search')}
+            disabled={disabled}
+          />
+        </div>
+      }
+
+      <ul className='select__options' role='listbox' aria-label={searchPlaceholder ?? t('global.search')}>
+        {filteredOptions.length > 0 ? (
+          filteredOptions.map((option) => {
+            const isSelected = selectedValues.includes(option.value);
+
+            return (
+              <li
+                key={option.value}
+                role='option'
+                aria-selected={isSelected}
+                className='select__option select__option--combobox'
+                onMouseDown={(event) => event.preventDefault()}
+                onClick={() => selectOption(option)}
+              >
+                <input
+                  type={isMultiple ? 'checkbox' : 'radio'}
+                  checked={isSelected}
+                  value={option.value}
+                  onChange={() => null}
+                  onClick={(event) => event.preventDefault()}
+                />
+                <span>{option.label}</span>
+              </li>
+            );
+          })
+        ) : null}
+      </ul>
+    </div>
+  );
+
   return (
     <div ref={wrapperRef} className={selectClasses} style={style} onBlur={closeOnFocusOutside}>
       {label && !hideLabel && <label htmlFor={id} className='select__label'>{label}</label>}
       <div className='select__wrapper'>
         <button
+          ref={triggerRef}
           id={id}
           type='button'
           className='select__trigger'
@@ -277,54 +381,9 @@ export const FormCombobox: FC<FormComboboxProps> = ({
         </button>
 
         {isOpen && (
-          <div className='select__menu select__menu--combobox'>
-            {
-              isSearchEnabled && <div className='select__search'>
-                <Icon
-                  label='Search icon'
-                  size='medium'
-                  className='select__search-icon'
-                  icon={<MdSearch className='search__icon-size' color='#5D6071' />}
-                />
-                <input
-                  ref={searchInputRef}
-                  className='select__search-input'
-                  value={query}
-                  onChange={(event) => setQuery(event.target.value)}
-                  placeholder={searchPlaceholder ?? t('global.search')}
-                  disabled={disabled}
-                />
-              </div>
-            }
-
-            <ul className='select__options' role='listbox' aria-label={searchPlaceholder ?? t('global.search')}>
-              {filteredOptions.length > 0 ? (
-                filteredOptions.map((option) => {
-                  const isSelected = selectedValues.includes(option.value);
-
-                  return (
-                    <li
-                      key={option.value}
-                      role='option'
-                      aria-selected={isSelected}
-                      className='select__option select__option--combobox'
-                      onMouseDown={(event) => event.preventDefault()}
-                      onClick={() => selectOption(option)}
-                    >
-                      <input
-                        type={isMultiple ? 'checkbox' : 'radio'}
-                        checked={isSelected}
-                        value={option.value}
-                        onChange={() => null}
-                        onClick={(event) => event.preventDefault()}
-                      />
-                      <span>{option.label}</span>
-                    </li>
-                  );
-                })
-              ) : null}
-            </ul>
-          </div>
+          isMenuPortaled && typeof document !== 'undefined'
+            ? createPortal(menu, document.body)
+            : menu
         )}
       </div>
     </div>
