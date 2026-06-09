@@ -163,10 +163,15 @@ const formatChatAnalysisCell = (
 };
 
 const ALL_COLUMNS_VALUE = '__all__';
-const BOOLEAN_SORT_COLUMN_IDS = new Set([
+// Boolean -> truthy values before falsy
+// For other columns -> desc before asc - populated before empty
+const NON_EMPTY_FIRST_SORT_COLUMN_IDS = new Set([
     'authenticatedPerson',
     'istest',
     'isPreserve',
+    'followUpStatus',
+    'responseQuality',
+    'theme',
 ]);
 const CHAT_STATUSES = [
     CHAT_EVENTS.ACCEPTED,
@@ -184,7 +189,7 @@ const getEndedChatsSortBy = (sorting: SortingState) => {
     }
 
     const [sortingObject] = sorting;
-    const sortType = BOOLEAN_SORT_COLUMN_IDS.has(sortingObject.id)
+    const sortType = NON_EMPTY_FIRST_SORT_COLUMN_IDS.has(sortingObject.id)
         ? sortingObject.desc ? 'asc' : 'desc'
         : sortingObject.desc ? 'desc' : 'asc';
 
@@ -1455,87 +1460,87 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 sortDescFirst: false,
             }),
             ...isChatAnalysisEnabled ? [
-                columnHelper.display({
-                    id: 'theme',
-                    header: () => (
-                        <HeaderCombobox
-                            label={t('chat.history.theme')}
-                            options={themeOptions}
-                            value={theme}
-                            onChange={(value) => {
-                                setTableHeaderValue(
-                                    'theme',
-                                    normalizeAllOptionFilterValues(
-                                        value,
-                                        theme,
-                                        getAllStringFilterValues(realThemeOptions)
-                                    )
-                                );
-                            }}
-                        />
+                columnHelper.accessor(
+                    (row) => formatChatAnalysisCell(
+                        row.theme,
+                        t('chat.quality.selectionEmptied')
                     ),
-                    cell: (props) => {
-                        return formatChatAnalysisCell(
-                            props.row.original.theme,
-                            t('chat.quality.selectionEmptied')
-                        );
-                    },
-                    enableSorting: true,
-                }),
-                columnHelper.display({
-                    id: 'responseQuality',
-                    header: () => (
-                        <HeaderCombobox
-                            label={t('chat.history.responseQuality')}
-                            options={responseQualityOptions}
-                            value={responseQuality}
-                            onChange={(value) => {
-                                setTableHeaderValue(
-                                    'responseQuality',
-                                    normalizeAllOptionFilterValues(
-                                        value,
-                                        responseQuality,
-                                        getAllStringFilterValues(realResponseQualityOptions)
-                                    )
-                                );
-                            }}
-                        />
+                    {
+                        id: 'theme',
+                        header: () => (
+                            <HeaderCombobox
+                                label={t('chat.history.theme')}
+                                options={themeOptions}
+                                value={theme}
+                                onChange={(value) => {
+                                    setTableHeaderValue(
+                                        'theme',
+                                        normalizeAllOptionFilterValues(
+                                            value,
+                                            theme,
+                                            getAllStringFilterValues(realThemeOptions)
+                                        )
+                                    );
+                                }}
+                            />
+                        ),
+                        enableSorting: true,
+                    }
+                ),
+                columnHelper.accessor(
+                    (row) => formatChatAnalysisCell(
+                        row.responseQuality,
+                        t('chat.quality.selectionEmptied')
                     ),
-                    cell: (props) => {
-                        return formatChatAnalysisCell(
-                            props.row.original.responseQuality,
-                            t('chat.quality.selectionEmptied')
-                        );
-                    },
-                    enableSorting: true,
-                }),
-                columnHelper.display({
-                    id: 'followUpStatus',
-                    header: () => (
-                        <HeaderCombobox
-                            label={t('chat.history.followUpStatus')}
-                            options={followUpStatusOptions}
-                            value={followUpStatus}
-                            onChange={(value) => {
-                                setTableHeaderValue(
-                                    'followUpStatus',
-                                    normalizeAllOptionFilterValues(
-                                        value,
-                                        followUpStatus,
-                                        getAllStringFilterValues(realFollowUpStatusOptions)
-                                    )
-                                );
-                            }}
-                        />
+                    {
+                        id: 'responseQuality',
+                        header: () => (
+                            <HeaderCombobox
+                                label={t('chat.history.responseQuality')}
+                                options={responseQualityOptions}
+                                value={responseQuality}
+                                onChange={(value) => {
+                                    setTableHeaderValue(
+                                        'responseQuality',
+                                        normalizeAllOptionFilterValues(
+                                            value,
+                                            responseQuality,
+                                            getAllStringFilterValues(realResponseQualityOptions)
+                                        )
+                                    );
+                                }}
+                            />
+                        ),
+                        enableSorting: true,
+                    }
+                ),
+                columnHelper.accessor(
+                    (row) => formatChatAnalysisCell(
+                        row.followUpStatus,
+                        t('chat.quality.selectionEmptied')
                     ),
-                    cell: (props) => {
-                        return formatChatAnalysisCell(
-                            props.row.original.followUpStatus,
-                            t('chat.quality.selectionEmptied')
-                        );
-                    },
-                    enableSorting: true,
-                }),
+                    {
+                        id: 'followUpStatus',
+                        header: () => (
+                            <HeaderCombobox
+                                label={t('chat.history.followUpStatus')}
+                                options={followUpStatusOptions}
+                                value={followUpStatus}
+                                onChange={(value) => {
+                                    setTableHeaderValue(
+                                        'followUpStatus',
+                                        normalizeAllOptionFilterValues(
+                                            value,
+                                            followUpStatus,
+                                            getAllStringFilterValues(realFollowUpStatusOptions)
+                                        )
+                                    );
+                                }}
+                            />
+                        ),
+                        enableSorting: true,
+                    }
+                ),
             ] : [],
             columnHelper.display({
                 id: 'detail',

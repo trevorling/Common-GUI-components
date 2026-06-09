@@ -36,6 +36,7 @@ const HeaderCombobox: FC<HeaderComboboxProps> = (props) => {
     searchPlaceholder: label,
     options,
     isSearchEnabled,
+    isMenuPortaled: true,
   };
 
   return (

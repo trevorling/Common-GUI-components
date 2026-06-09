@@ -210,7 +210,6 @@ const DataTable: FC<DataTableProps> = ({
                                                 header.column.columnDef.meta?.sticky === 'right'
                                                     ? `${header.column.getAfter('right') * 0.675}px`
                                                     : undefined,
-                                            backgroundColor: 'white',
                                             zIndex: header.column.columnDef.meta?.sticky ? 1 : 0,
                                         }}
                                     >
