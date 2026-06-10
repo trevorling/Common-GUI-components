@@ -179,7 +179,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
 
     if (!triggerRect) return;
 
-    const offset = 3;
+    const offset = 10;
 
     setMenuStyle({
       left: triggerRect.left,

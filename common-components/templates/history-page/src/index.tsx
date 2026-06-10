@@ -2105,12 +2105,13 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 onRemove={removeSelectedFilterTag}
                 onClearFiltersClick={onClearFilersClick}
             />
-            <div className="card-drawer-container" style={{height: '100%', overflow: 'auto', maxHeight: '60vh'}}>
+            <div className="card-drawer-container">
                 <div className="card-wrapper">
                     <Card>
                         <DataTable
                             data={filteredEndedChatsList}
                             sortable
+                            stickyHeader
                             columns={getFilteredColumns()}
                             selectedRow={(row) => row.original.id === selectedChat?.id}
                             pagination={pagination}

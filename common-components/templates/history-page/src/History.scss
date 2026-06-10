@@ -69,9 +69,37 @@
 }
 
 .card-wrapper {
+  display: flex;
+  flex-direction: column;
   flex: 1;
-  overflow: auto;
+  min-height: 0;
+  overflow: hidden;
   transition: flex 0.3s ease;
+
+  .card {
+    box-sizing: border-box;
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    max-height: none;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .data-table__scrollWrapper {
+    flex: 1;
+    max-height: none;
+    min-height: 0;
+    overflow: auto;
+  }
 }
 
 .drawer-container {
