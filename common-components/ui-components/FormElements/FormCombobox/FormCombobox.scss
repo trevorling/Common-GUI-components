@@ -49,6 +49,10 @@
         display: block;
       }
 
+      + #{$self}__menu--combobox {
+        display: flex;
+      }
+
       +#{$self}__menu_up {
         display: block;
       }
@@ -124,7 +128,8 @@
     }
 
     #{$self}__search,
-    #{$self}__options {
+    #{$self}__options,
+    #{$self}__actions {
       background-color: get-color(white);
     }
   }
@@ -152,15 +157,24 @@
   }
 
   &__menu--combobox {
+    flex-direction: column;
     top: auto;
     bottom: 100%;
+    max-height: none;
     overflow: hidden;
     margin-top: 0;
     margin-bottom: 3px;
   }
 
+  &__menu--down {
+    top: 100%;
+    bottom: auto;
+    margin-top: 3px;
+    margin-bottom: 0;
+  }
+
   &__menu--portal {
-    display: block;
+    display: flex;
     position: fixed;
     top: 100%;
     bottom: auto;
@@ -171,11 +185,26 @@
   }
 
   &__options {
-    max-height: 224px;
+    flex: 1 1 auto;
+    max-height: 220px;
+    min-height: 0;
     overflow: auto;
     list-style: none;
     margin: 0;
     padding: 0;
+  }
+
+  &__actions {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 12px 16px 16px;
+
+    > .btn.btn--s {
+      justify-content: center;
+      min-width: 106px;
+      padding: 4px 16px;
+    }
   }
 
   &__search {
@@ -238,7 +267,9 @@
   }
 
   &__option--combobox {
+    box-sizing: border-box;
     cursor: pointer;
+    min-height: 40px;
 
     &[aria-selected=true] {
       background-color: get-color(white);

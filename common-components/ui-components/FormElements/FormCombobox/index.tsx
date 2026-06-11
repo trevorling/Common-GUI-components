@@ -15,7 +15,7 @@ import clsx from 'clsx';
 import { useTranslation } from 'react-i18next';
 import { MdArrowDropDown, MdExpandMore, MdSearch } from 'react-icons/md';
 
-import { Icon } from '../..';
+import { Button, Icon } from '../..';
 import './FormCombobox.scss';
 
 type FormComboboxOption = {
@@ -35,6 +35,9 @@ type FormComboboxBaseProps = {
   readonly isSearchEnabled?: boolean;
   readonly hideInputStyle?: boolean;
   readonly isMenuPortaled?: boolean;
+  readonly allOptionValue?: string;
+  readonly direction?: 'down' | 'up';
+  readonly selectedOptionsCount?: number;
 };
 
 type FormComboboxSingleProps = FormComboboxBaseProps & {
@@ -51,6 +54,7 @@ type FormComboboxMultipleProps = FormComboboxBaseProps & {
   readonly defaultValue?: string[];
   readonly onChange?: (value: string[]) => void;
   readonly onSelectionChange?: (selection: FormComboboxOption[] | null) => void;
+  readonly isApplyBtnVisible?: boolean;
 };
 
 type FormComboboxProps = FormComboboxSingleProps | FormComboboxMultipleProps;
@@ -125,6 +129,39 @@ const orderSelectedOptionsFirst = (
   return [...selectedOptions, ...unselectedOptions];
 };
 
+const getNextMultipleValues = (
+  option: FormComboboxOption,
+  options: FormComboboxOption[],
+  selectedValues: string[],
+  allOptionValue?: string
+): string[] => {
+  if (!allOptionValue) {
+    return selectedValues.includes(option.value)
+      ? selectedValues.filter((value) => value !== option.value)
+      : [...selectedValues, option.value];
+  }
+
+  const optionValues = options.map((item) => item.value);
+  const realOptionValues = optionValues.filter((value) => value !== allOptionValue);
+
+  if (option.value === allOptionValue) {
+    return selectedValues.includes(allOptionValue) ? [] : [allOptionValue, ...realOptionValues];
+  }
+
+  const nextRealValues = selectedValues.includes(option.value)
+    ? selectedValues.filter((value) => value !== option.value && value !== allOptionValue)
+    : [...selectedValues.filter((value) => value !== allOptionValue), option.value];
+
+  if (
+    realOptionValues.length > 0 &&
+    realOptionValues.every((value) => nextRealValues.includes(value))
+  ) {
+    return [allOptionValue, ...realOptionValues];
+  }
+
+  return nextRealValues;
+};
+
 export const FormCombobox: FC<FormComboboxProps> = ({
   label,
   hideLabel,
@@ -136,6 +173,8 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   isSearchEnabled = false,
   hideInputStyle = false,
   isMenuPortaled = false,
+  allOptionValue,
+  direction = 'up',
   ...props
 }) => {
   const id = useId();
@@ -155,11 +194,16 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   const searchInputRef = useRef<HTMLInputElement | null>(null);
 
   const isMultiple = props.multiple === true;
-  const selectedValues = getSelectedValues(props, internalSingleValue, internalMultipleValue);
+  const isApplyBtnVisible = props.multiple === true ? props.isApplyBtnVisible : false;
+  const selectedValues = useMemo(() => (
+    getSelectedValues(props, internalSingleValue, internalMultipleValue)
+  ), [props.multiple, props.value, internalSingleValue, internalMultipleValue]);
+  const [draftMultipleValue, setDraftMultipleValue] = useState<string[]>(selectedValues);
+  const menuSelectedValues = isApplyBtnVisible ? draftMultipleValue : selectedValues;
 
   const orderedOptions = useMemo(() => (
-    orderSelectedOptionsFirst(options, selectedValues)
-  ), [options, selectedValues]);
+    orderSelectedOptionsFirst(options, menuSelectedValues)
+  ), [options, menuSelectedValues]);
 
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -207,6 +251,12 @@ export const FormCombobox: FC<FormComboboxProps> = ({
       searchInputRef.current?.focus();
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (isOpen && isApplyBtnVisible) {
+      setDraftMultipleValue(selectedValues);
+    }
+  }, [isOpen, isApplyBtnVisible]);
 
   useEffect(() => {
     const handleDocumentClick = (event: MouseEvent) => {
@@ -260,10 +310,14 @@ export const FormCombobox: FC<FormComboboxProps> = ({
     if (!props.multiple) return;
     const multipleProps = props as FormComboboxMultipleProps;
 
-    const nextValues = selectedValues.includes(option.value)
-      ? selectedValues.filter((value) => value !== option.value)
-      : [...selectedValues, option.value];
+    const currentValues = isApplyBtnVisible ? draftMultipleValue : selectedValues;
+    const nextValues = getNextMultipleValues(option, options, currentValues, allOptionValue);
     const nextSelection = options.filter((item) => nextValues.includes(item.value));
+
+    if (isApplyBtnVisible) {
+      setDraftMultipleValue(nextValues);
+      return;
+    }
 
     if (multipleProps.value === undefined) {
       setInternalMultipleValue(nextValues);
@@ -284,10 +338,29 @@ export const FormCombobox: FC<FormComboboxProps> = ({
     setSingleValue(option);
   };
 
+  const applyMultipleValue = () => {
+    if (!props.multiple) return;
+
+    const multipleProps = props as FormComboboxMultipleProps;
+
+    if (multipleProps.value === undefined) {
+      setInternalMultipleValue(draftMultipleValue);
+    }
+
+    multipleProps.onChange?.(draftMultipleValue);
+    const nextSelection = options.filter((item) => draftMultipleValue.includes(item.value));
+
+    multipleProps.onSelectionChange?.(nextSelection.length ? nextSelection : null);
+    setIsOpen(false);
+    setQuery('');
+  };
+
   const placeholderValue = placeholder || t('global.choose');
   const triggerLabel = isMultiple
     ? selectedOptions.length > 0
-      ? selectedOptions.map((option) => option.label).join(', ')
+      ? props.selectedOptionsCount !== undefined
+        ? `${placeholder ?? t('global.chosen')} (${props.selectedOptionsCount})`
+        : selectedOptions.map((option) => option.label).join(', ')
       : placeholderValue
     : selectedOptions[0]?.label ?? placeholderValue;
   const triggerContent = hideInputStyle ? label ?? triggerLabel : triggerLabel;
@@ -304,6 +377,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
       ref={menuRef}
       className={clsx(
         'select__menu select__menu--combobox',
+        `select__menu--${direction}`,
         isMenuPortaled && 'select__menu--portal'
       )}
       style={isMenuPortaled ? menuStyle : undefined}
@@ -330,7 +404,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
       <ul className='select__options' role='listbox' aria-label={searchPlaceholder ?? t('global.search')}>
         {filteredOptions.length > 0 ? (
           filteredOptions.map((option) => {
-            const isSelected = selectedValues.includes(option.value);
+            const isSelected = menuSelectedValues.includes(option.value);
 
             return (
               <li
@@ -354,6 +428,19 @@ export const FormCombobox: FC<FormComboboxProps> = ({
           })
         ) : null}
       </ul>
+
+      {isApplyBtnVisible && (
+        <div className='select__actions'>
+          <Button
+            size='s'
+            type='button'
+            onClick={applyMultipleValue}
+            disabled={disabled}
+          >
+            {t('global.apply')}
+          </Button>
+        </div>
+      )}
     </div>
   );
 

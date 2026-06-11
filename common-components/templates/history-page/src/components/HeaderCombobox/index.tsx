@@ -6,6 +6,7 @@ type HeaderComboboxBaseProps = {
   readonly label: string;
   readonly options?: ComponentProps<typeof FormCombobox>['options'];
   readonly isSearchEnabled?: ComponentProps<typeof FormCombobox>['isSearchEnabled'];
+  readonly allOptionValue?: ComponentProps<typeof FormCombobox>['allOptionValue'];
 };
 
 type HeaderComboboxSingleProps = HeaderComboboxBaseProps & {
@@ -18,6 +19,7 @@ type HeaderComboboxMultipleProps = HeaderComboboxBaseProps & {
   readonly multiple?: true;
   readonly value?: string[];
   readonly onChange: (value: string[]) => void;
+  readonly isApplyBtnVisible?: boolean;
 };
 
 type HeaderComboboxProps = HeaderComboboxSingleProps | HeaderComboboxMultipleProps;
@@ -27,6 +29,7 @@ const HeaderCombobox: FC<HeaderComboboxProps> = (props) => {
     label,
     options = [],
     isSearchEnabled = true,
+    allOptionValue,
   } = props;
   const sharedProps = {
     hideInputStyle: true,
@@ -37,6 +40,7 @@ const HeaderCombobox: FC<HeaderComboboxProps> = (props) => {
     options,
     isSearchEnabled,
     isMenuPortaled: true,
+    allOptionValue,
   };
 
   return (
@@ -58,6 +62,7 @@ const HeaderCombobox: FC<HeaderComboboxProps> = (props) => {
           multiple={true}
           value={props.value}
           onChange={props.onChange}
+          isApplyBtnVisible={props.isApplyBtnVisible}
         />
       )}
     </span>

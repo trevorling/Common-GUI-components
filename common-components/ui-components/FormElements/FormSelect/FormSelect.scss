@@ -48,6 +48,10 @@
         display: block;
       }
 
+      + #{$self}__menu--multiselect {
+        display: flex;
+      }
+
       +#{$self}__menu_up {
          display: block;
       }
@@ -72,6 +76,21 @@
     max-height: 320px;
     overflow: auto;
     margin-top: 3px;
+  }
+
+  &__menu--multiselect {
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  &__options {
+    flex: 1 1 auto;
+    max-height: 224px;
+    min-height: 0;
+    overflow: auto;
+    list-style: none;
+    margin: 0;
+    padding: 0;
   }
 
   &__menu_up {
@@ -116,6 +135,19 @@
     &:focus {
       background-color: get-color(black-coral-0);
       color: get-color(black-coral-20);
+    }
+  }
+
+  &__actions {
+    display: flex;
+    flex: 0 0 auto;
+    justify-content: center;
+    padding: 12px 16px 16px;
+
+    > .btn.btn--s {
+      justify-content: center;
+      min-width: 106px;
+      padding: 4px 16px;
     }
   }
 }
