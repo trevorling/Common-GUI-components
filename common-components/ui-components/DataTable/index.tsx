@@ -55,6 +55,7 @@ type DataTableProps = {
     pagesCount?: number;
     meta?: TableMeta<any>;
     selectedRow?: (row: Row<any>) => boolean;
+    stickyHeader?: boolean;
     totalCountLabel?: string | null;
 };
 
@@ -116,6 +117,7 @@ const DataTable: FC<DataTableProps> = ({
                                            pagesCount,
                                            meta,
                                            selectedRow,
+                                           stickyHeader,
                                            totalCountLabel,
                                        }) => {
     const id = useId();
@@ -189,68 +191,72 @@ const DataTable: FC<DataTableProps> = ({
     return (
         <>
             <div className="data-table__scrollWrapper">
-                <table className="data-table">
+                <table className={clsx('data-table', stickyHeader && 'data-table--sticky-header')}>
                     {!disableHead && (
                         <thead>
                         {table.getHeaderGroups().map((headerGroup) => (
                             <tr key={headerGroup.id}>
-                                {headerGroup.headers.map((header) => (
-                                    <th
-                                        key={header.id}
-                                        style={{
-                                            width: header.column.columnDef.meta?.size,
-                                            position: header.column.columnDef.meta?.sticky
-                                                ? 'sticky'
-                                                : undefined,
-                                            left:
-                                                header.column.columnDef.meta?.sticky === 'left'
-                                                    ? `${header.column.getAfter('left') * 0.675}px`
-                                                    : undefined,
-                                            right:
-                                                header.column.columnDef.meta?.sticky === 'right'
-                                                    ? `${header.column.getAfter('right') * 0.675}px`
-                                                    : undefined,
-                                            zIndex: header.column.columnDef.meta?.sticky ? 1 : 0,
-                                        }}
-                                    >
-                                        {header.isPlaceholder ? null : (
-                                            <Track gap={8}>
-                                                {sortable && header.column.getCanSort() && (
-                                                    <button
-                                                        onClick={header.column.getToggleSortingHandler()}
-                                                    >
-                                                        {{
-                                                            asc: (
+                                {headerGroup.headers.map((header) => {
+                                    const stickyColumn = header.column.columnDef.meta?.sticky;
+
+                                    return (
+                                        <th
+                                            key={header.id}
+                                            style={{
+                                                width: header.column.columnDef.meta?.size,
+                                                position:
+                                                    stickyHeader || stickyColumn ? 'sticky' : undefined,
+                                                top: stickyHeader ? 0 : undefined,
+                                                left:
+                                                    stickyColumn === 'left'
+                                                        ? `${header.column.getAfter('left') * 0.675}px`
+                                                        : undefined,
+                                                right:
+                                                    stickyColumn === 'right'
+                                                        ? `${header.column.getAfter('right') * 0.675}px`
+                                                        : undefined,
+                                                zIndex: stickyHeader ? (stickyColumn ? 3 : 1) : stickyColumn ? 1 : 0,
+                                            }}
+                                        >
+                                            {header.isPlaceholder ? null : (
+                                                <Track gap={8}>
+                                                    {sortable && header.column.getCanSort() && (
+                                                        <button
+                                                            onClick={header.column.getToggleSortingHandler()}
+                                                        >
+                                                            {{
+                                                                asc: (
+                                                                    <Icon
+                                                                        icon={<MdExpandMore fontSize={20} />}
+                                                                        size="medium"
+                                                                    />
+                                                                ),
+                                                                desc: (
+                                                                    <Icon
+                                                                        icon={<MdExpandLess fontSize={20} />}
+                                                                        size="medium"
+                                                                    />
+                                                                ),
+                                                            }[header.column.getIsSorted() as string] ?? (
                                                                 <Icon
-                                                                    icon={<MdExpandMore fontSize={20} />}
+                                                                    icon={<MdUnfoldMore fontSize={22} />}
                                                                     size="medium"
                                                                 />
-                                                            ),
-                                                            desc: (
-                                                                <Icon
-                                                                    icon={<MdExpandLess fontSize={20} />}
-                                                                    size="medium"
-                                                                />
-                                                            ),
-                                                        }[header.column.getIsSorted() as string] ?? (
-                                                            <Icon
-                                                                icon={<MdUnfoldMore fontSize={22} />}
-                                                                size="medium"
-                                                            />
-                                                        )}
-                                                    </button>
-                                                )}
-                                                {flexRender(
-                                                    header.column.columnDef.header,
-                                                    header.getContext()
-                                                )}
-                                                {filterable && header.column.getCanFilter() && (
-                                                    <Filter column={header.column} table={table} />
-                                                )}
-                                            </Track>
-                                        )}
-                                    </th>
-                                ))}
+                                                            )}
+                                                        </button>
+                                                    )}
+                                                    {flexRender(
+                                                        header.column.columnDef.header,
+                                                        header.getContext()
+                                                    )}
+                                                    {filterable && header.column.getCanFilter() && (
+                                                        <Filter column={header.column} table={table} />
+                                                    )}
+                                                </Track>
+                                            )}
+                                        </th>
+                                    );
+                                })}
                             </tr>
                         ))}
                         </thead>

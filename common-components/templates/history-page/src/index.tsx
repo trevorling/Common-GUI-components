@@ -16,9 +16,9 @@ import {
     Dialog,
     Drawer,
     FormCheckbox,
+    FormCombobox,
     FormDatepicker,
     FormInput,
-    FormMultiselect,
     HistoricalChat,
     Icon,
     Tooltip,
@@ -40,6 +40,7 @@ import {StoreState} from "../../../store";
 import {saveFile} from "../../../services/file";
 import {ChatMetadataPanel, HeaderCombobox, QualitySettings, SelectedFilterTags} from './components';
 import { CharMeasurementType } from './types';
+import { ALL_COLUMNS_VALUE } from './constants';
 
 type HistoryProps = {
     user: UserInfo | null;
@@ -162,7 +163,6 @@ const formatChatAnalysisCell = (
     return value.join(', ');
 };
 
-const ALL_COLUMNS_VALUE = '__all__';
 // Boolean -> truthy values before falsy
 // For other columns -> desc before asc - populated before empty
 const NON_EMPTY_FIRST_SORT_COLUMN_IDS = new Set([
@@ -436,7 +436,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const isChatAnalysisEnabled = useMemo(() => {
         return qualitySettingsConfigQuery.data?.chatAnalysisEnabled ?? false;
     }, [qualitySettingsConfigQuery.data]);
-    console.log("IS CHAT ANALYSIS ENABLED", isChatAnalysisEnabled);
 
     const getAllEndedChats = useMutation({
         mutationFn: (data: {
@@ -578,21 +577,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         }
 
         return realSelectedColumns;
-    };
-
-    const normalizeSelectedColumns = (selection: string[]) => {
-        const currentAllSelected = selectedColumns.includes(ALL_COLUMNS_VALUE) || areAllColumnsSelected(selectedColumns);
-        const nextAllSelected = selection.includes(ALL_COLUMNS_VALUE);
-
-        if (nextAllSelected && !currentAllSelected) {
-            return [ALL_COLUMNS_VALUE, ...getAllColumnValues()];
-        }
-
-        if (!nextAllSelected && currentAllSelected) {
-            return [];
-        }
-
-        return getUiSelectedColumns(selection);
     };
 
     const chatStatusChangeMutation = useMutation({
@@ -1268,10 +1252,12 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                 label={t('chat.history.csaName')}
                                 options={customerSupportAgentsQuery.data ?? []}
                                 value={csaIdCodesFilter}
+                                allOptionValue={ALL_COLUMNS_VALUE}
                                 onChange={(value) => {
                                     const normalizedValue = normalizeCsaFilterValues(value);
                                     tableHeaderForm.setValue('csaIdCodesFilter', normalizedValue);
                                 }}
+                                isApplyBtnVisible
                             />
                         );
                     },
@@ -1365,6 +1351,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             label={t('chat.history.rating') ?? ''}
                             options={ratingOptions}
                             value={feedbackRatings}
+                            allOptionValue={ALL_COLUMNS_VALUE}
                             onChange={(value) => {
                                 setTableHeaderValue(
                                     'feedbackRatings',
@@ -1375,6 +1362,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                     )
                                 );
                             }}
+                            isApplyBtnVisible
                         />
                     );
                 },
@@ -1399,6 +1387,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             label={t('global.status') ?? ''}
                             options={statusOptions}
                             value={status}
+                            allOptionValue={ALL_COLUMNS_VALUE}
                             onChange={(value) => {
                                 setTableHeaderValue(
                                     'status',
@@ -1409,6 +1398,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                     )
                                 );
                             }}
+                            isApplyBtnVisible
                             isSearchEnabled={true}
                         />
                     );
@@ -1447,12 +1437,14 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             label={t('chat.history.www') ?? ''}
                             value={domains}
                             options={domainOptions}
+                            allOptionValue={ALL_COLUMNS_VALUE}
                             onChange={(value) => {
                                 setTableHeaderValue(
                                     'domains',
                                     normalizeAllOptionFilterValues(value, domains, currentDomains)
                                 );
                             }}
+                            isApplyBtnVisible
                         />
                     );
                 },
@@ -1472,6 +1464,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                 label={t('chat.history.theme')}
                                 options={themeOptions}
                                 value={theme}
+                                allOptionValue={ALL_COLUMNS_VALUE}
                                 onChange={(value) => {
                                     setTableHeaderValue(
                                         'theme',
@@ -1482,6 +1475,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                         )
                                     );
                                 }}
+                                isApplyBtnVisible
                             />
                         ),
                         enableSorting: true,
@@ -1499,6 +1493,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                 label={t('chat.history.responseQuality')}
                                 options={responseQualityOptions}
                                 value={responseQuality}
+                                allOptionValue={ALL_COLUMNS_VALUE}
                                 onChange={(value) => {
                                     setTableHeaderValue(
                                         'responseQuality',
@@ -1509,6 +1504,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                         )
                                     );
                                 }}
+                                isApplyBtnVisible
                             />
                         ),
                         enableSorting: true,
@@ -1526,6 +1522,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                 label={t('chat.history.followUpStatus')}
                                 options={followUpStatusOptions}
                                 value={followUpStatus}
+                                allOptionValue={ALL_COLUMNS_VALUE}
                                 onChange={(value) => {
                                     setTableHeaderValue(
                                         'followUpStatus',
@@ -1536,6 +1533,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                                         )
                                     );
                                 }}
+                                isApplyBtnVisible
                             />
                         ),
                         enableSorting: true,
@@ -2057,25 +2055,27 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             </>
                         )}
                         <Track style={{width: '240px'}}>
-                        <FormMultiselect
+                        <FormCombobox
                             key={counterKey}
                             name="visibleColumns"
                             label={t('')}
                             placeholder={t('chat.history.chosenColumn')}
                             options={visibleColumnOptions}
-                            selectedOptions={visibleColumnOptions.filter((o) =>
-                                selectedColumns.includes(o.value)
-                            )}
+                            value={selectedColumns}
                             selectedOptionsCount={getRealSelectedColumns(selectedColumns).length}
-                            onSelectionChange={(selection) => {
-                                const columns = normalizeSelectedColumns(selection?.map((s) => s.value) ?? []);
+                            multiple={true}
+                            allOptionValue={ALL_COLUMNS_VALUE}
+                            direction="down"
+                            onChange={(selection) => {
+                                const columns = getUiSelectedColumns(selection);
                                 setSelectedColumns(columns);
                                 setCounterKey(prev => prev + 1);
                                 updatePagePreferences.mutate({
                                     page_results: pagination.pageSize,
-                                    selected_columns: getRealSelectedColumns(columns)
+                                    selected_columns: getRealSelectedColumns(columns),
                                 })
                             }}
+                            isApplyBtnVisible
                             />
                         </Track>
                     </Track>
@@ -2105,12 +2105,13 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 onRemove={removeSelectedFilterTag}
                 onClearFiltersClick={onClearFilersClick}
             />
-            <div className="card-drawer-container" style={{height: '100%', overflow: 'auto', maxHeight: '60vh'}}>
+            <div className="card-drawer-container">
                 <div className="card-wrapper">
                     <Card>
                         <DataTable
                             data={filteredEndedChatsList}
                             sortable
+                            stickyHeader
                             columns={getFilteredColumns()}
                             selectedRow={(row) => row.original.id === selectedChat?.id}
                             pagination={pagination}

@@ -5,6 +5,12 @@ All changes to this project will be documented in this file.
 ## Template [MajorVersion.MediterraneanVersion.MinorVersion] - DD-MM-YYYY
 
 
+## [0.0.61] - 11.06.2026
+
+- Removed redundant scroll from the History table
+- Added Apply action to the History table header multi-option filter
+- Made the History table header sticky
+
 ## [0.0.60] - 09.06.2026
 
 - History table: theme, follow up, quality sorting
