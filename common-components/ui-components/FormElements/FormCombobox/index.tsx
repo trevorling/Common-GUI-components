@@ -38,6 +38,7 @@ type FormComboboxBaseProps = {
   readonly allOptionValue?: string;
   readonly direction?: 'down' | 'up';
   readonly selectedOptionsCount?: number;
+  readonly preserveOptionsOrder?: boolean;
 };
 
 type FormComboboxSingleProps = FormComboboxBaseProps & {
@@ -182,6 +183,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   isMenuPortaled = false,
   allOptionValue,
   direction = 'up',
+  preserveOptionsOrder = false,
   ...props
 }) => {
   const id = useId();
@@ -207,10 +209,11 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   ), [props.multiple, props.value, internalSingleValue, internalMultipleValue]);
   const [draftMultipleValue, setDraftMultipleValue] = useState<string[]>(selectedValues);
   const menuSelectedValues = isApplyBtnVisible ? draftMultipleValue : selectedValues;
+  const [menuOptionsOrder, setMenuOptionsOrder] = useState<FormComboboxOption[]>(() => (
+    preserveOptionsOrder ? options : orderSelectedOptionsFirst(options, selectedValues, allOptionValue)
+  ));
 
-  const orderedOptions = useMemo(() => (
-    orderSelectedOptionsFirst(options, menuSelectedValues, allOptionValue)
-  ), [options, menuSelectedValues, allOptionValue]);
+  const orderedOptions = isOpen ? menuOptionsOrder : options;
 
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -260,8 +263,14 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && isApplyBtnVisible) {
-      setDraftMultipleValue(selectedValues);
+    if (isOpen) {
+      if (isApplyBtnVisible) {
+        setDraftMultipleValue(selectedValues);
+      }
+
+      setMenuOptionsOrder(
+        preserveOptionsOrder ? options : orderSelectedOptionsFirst(options, selectedValues, allOptionValue)
+      );
     }
   }, [isOpen, isApplyBtnVisible]);
 

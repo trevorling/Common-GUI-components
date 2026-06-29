@@ -2097,6 +2097,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             selectedOptionsCount={getRealSelectedColumns(selectedColumns).length}
                             multiple={true}
                             allOptionValue={ALL_COLUMNS_VALUE}
+                            preserveOptionsOrder
                             direction="down"
                             onChange={(selection) => {
                                 const columns = getUiSelectedColumns(selection);
