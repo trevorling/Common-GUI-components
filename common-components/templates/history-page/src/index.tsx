@@ -1882,12 +1882,31 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         };
     }, [chatQualityMeasurementQuery.data]);
 
+    const chatAnalysisFieldByMeasurementType: Record<MeasurementType, 'theme' | 'responseQuality' | 'followUpStatus'> = {
+        [MEASUREMENT_TYPES.THEME]: 'theme',
+        [MEASUREMENT_TYPES.QUALITY]: 'responseQuality',
+        [MEASUREMENT_TYPES.FOLLOW_UP_ACTION]: 'followUpStatus',
+    };
+
     const chatQualityMeasurementMutation = useMutation({
         mutationFn: postQualityMeasurements,
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({
                 queryKey: ['chats/quality/measurements', variables.chatUuid],
             });
+
+            const field = chatAnalysisFieldByMeasurementType[variables.type];
+            const value = Array.isArray(variables.value) ? variables.value : [variables.value];
+
+            setFilteredEndedChatsList((prevChats) =>
+                prevChats.map((chat) =>
+                    chat.id === variables.chatUuid ? ({ ...chat, [field]: value } as ChatType) : chat
+                )
+            );
+
+            if (selectedChat?.id === variables.chatUuid) {
+                setSelectedChat({ ...selectedChat, [field]: value } as ChatType);
+            }
         },
         onError: (error: AxiosError) => {
             toast?.open({
