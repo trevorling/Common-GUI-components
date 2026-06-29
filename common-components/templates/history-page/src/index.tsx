@@ -243,7 +243,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalCount, setTotalCount] = useState<number | null>(null);
     const [initialLoad, setInitialLoad] = useState<boolean>(true);
-    const [analysisConfigReady, setAnalysisConfigReady] = useState<boolean>(false);
     const [filteredEndedChatsList, setFilteredEndedChatsList] = useState<
         ChatType[]
     >([]);
@@ -396,9 +395,21 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         return updatedPagination;
     };
 
+    const selectedChatDomainUuid = useMemo(() => {
+        return userWidgetDomains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
+    }, [selectedChat]);
+    const qualitySettingsConfigQuery = useQuery<QualitySettingsConfig>({
+        queryKey: ['configs/chat-analysis'],
+        queryFn: () => loadQualitySettingsConfig(selectedChatDomainUuid ? selectedChatDomainUuid : GLOBAL_FEEDBACK_CONFIG_DOMAIN),
+    });
+
+    const isChatAnalysisEnabled = useMemo(() => {
+        return qualitySettingsConfigQuery.data?.chatAnalysisEnabled ?? false;
+    }, [qualitySettingsConfigQuery.data]);
+
     useEffect(() => {
         if (initialLoad) {
-            if (!analysisConfigReady) return;
+            if (qualitySettingsConfigQuery.isLoading) return;
             fetchData();
         } else if (skipNextSelectedColumnsEffect.current) {
             skipNextSelectedColumnsEffect.current = false;
@@ -411,7 +422,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 search,
             });
         }
-    }, [selectedColumns, currentDomains, analysisConfigReady]);
+    }, [selectedColumns, currentDomains, qualitySettingsConfigQuery.isLoading]);
 
     const updatePagePreferences = useMutation({
         mutationFn: (data: {
@@ -426,24 +437,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             });
         },
     });
-
-    const selectedChatDomainUuid = useMemo(() => {
-        return userWidgetDomains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
-    }, [selectedChat]);
-    const qualitySettingsConfigQuery = useQuery<QualitySettingsConfig>({
-        queryKey: ['configs/chat-analysis'],
-        queryFn: () => loadQualitySettingsConfig(selectedChatDomainUuid ? selectedChatDomainUuid : GLOBAL_FEEDBACK_CONFIG_DOMAIN),
-    });
-
-    const isChatAnalysisEnabled = useMemo(() => {
-        return qualitySettingsConfigQuery.data?.chatAnalysisEnabled ?? false;
-    }, [qualitySettingsConfigQuery.data]);
-
-    useEffect(() => {
-        if (!qualitySettingsConfigQuery.isLoading) {
-            setAnalysisConfigReady(true);
-        }
-    }, [qualitySettingsConfigQuery.isLoading]);
 
     const getAllEndedChats = useMutation({
         mutationFn: (data: {
