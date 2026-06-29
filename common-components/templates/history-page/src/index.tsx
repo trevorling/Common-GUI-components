@@ -243,6 +243,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const [totalPages, setTotalPages] = useState<number>(1);
     const [totalCount, setTotalCount] = useState<number | null>(null);
     const [initialLoad, setInitialLoad] = useState<boolean>(true);
+    const [analysisConfigReady, setAnalysisConfigReady] = useState<boolean>(false);
     const [filteredEndedChatsList, setFilteredEndedChatsList] = useState<
         ChatType[]
     >([]);
@@ -397,6 +398,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
 
     useEffect(() => {
         if (initialLoad) {
+            if (!analysisConfigReady) return;
             fetchData();
         } else if (skipNextSelectedColumnsEffect.current) {
             skipNextSelectedColumnsEffect.current = false;
@@ -409,7 +411,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 search,
             });
         }
-    }, [selectedColumns, currentDomains]);
+    }, [selectedColumns, currentDomains, analysisConfigReady]);
 
     const updatePagePreferences = useMutation({
         mutationFn: (data: {
@@ -436,6 +438,12 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
     const isChatAnalysisEnabled = useMemo(() => {
         return qualitySettingsConfigQuery.data?.chatAnalysisEnabled ?? false;
     }, [qualitySettingsConfigQuery.data]);
+
+    useEffect(() => {
+        if (!qualitySettingsConfigQuery.isLoading) {
+            setAnalysisConfigReady(true);
+        }
+    }, [qualitySettingsConfigQuery.isLoading]);
 
     const getAllEndedChats = useMutation({
         mutationFn: (data: {
@@ -573,7 +581,12 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         const realSelectedColumns = getRealSelectedColumns(columns);
 
         if (areAllColumnsSelected(realSelectedColumns)) {
-            return [ALL_COLUMNS_VALUE, ...getAllColumnValues()];
+            const allColumnValues = getAllColumnValues();
+            const extraSelectedColumns = realSelectedColumns.filter(
+                (column) => !allColumnValues.includes(column)
+            );
+
+            return [ALL_COLUMNS_VALUE, ...allColumnValues, ...extraSelectedColumns];
         }
 
         return realSelectedColumns;

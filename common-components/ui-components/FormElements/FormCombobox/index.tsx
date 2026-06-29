@@ -109,8 +109,13 @@ const getSelectedValues = (
 
 const orderSelectedOptionsFirst = (
   options: FormComboboxOption[],
-  selectedValues: string[]
+  selectedValues: string[],
+  allOptionValue?: string
 ): FormComboboxOption[] => {
+  const allOption = allOptionValue
+    ? options.find((option) => option.value === allOptionValue)
+    : undefined;
+
   if (selectedValues.length === 0) return options;
 
   const selectedValueSet = new Set(selectedValues);
@@ -118,6 +123,8 @@ const orderSelectedOptionsFirst = (
   const unselectedOptions: FormComboboxOption[] = [];
 
   options.forEach((option) => {
+    if (option === allOption) return;
+
     if (selectedValueSet.has(option.value)) {
       selectedOptions.push(option);
       return;
@@ -126,7 +133,7 @@ const orderSelectedOptionsFirst = (
     unselectedOptions.push(option);
   });
 
-  return [...selectedOptions, ...unselectedOptions];
+  return [...(allOption ? [allOption] : []), ...selectedOptions, ...unselectedOptions];
 };
 
 const getNextMultipleValues = (
@@ -202,8 +209,8 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   const menuSelectedValues = isApplyBtnVisible ? draftMultipleValue : selectedValues;
 
   const orderedOptions = useMemo(() => (
-    orderSelectedOptionsFirst(options, menuSelectedValues)
-  ), [options, menuSelectedValues]);
+    orderSelectedOptionsFirst(options, menuSelectedValues, allOptionValue)
+  ), [options, menuSelectedValues, allOptionValue]);
 
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
