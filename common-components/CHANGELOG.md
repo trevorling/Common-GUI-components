@@ -4,6 +4,10 @@ All changes to this project will be documented in this file.
 
 ## Template [MajorVersion.MediterraneanVersion.MinorVersion] - DD-MM-YYYY
 
+## [0.0.62] - 29.06.2026
+
+- Fixed chosen columns selection persistence
+- Fixed updating chat table after changing chat analysis values
 
 ## [0.0.61] - 11.06.2026
 

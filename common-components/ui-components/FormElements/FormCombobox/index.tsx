@@ -38,6 +38,7 @@ type FormComboboxBaseProps = {
   readonly allOptionValue?: string;
   readonly direction?: 'down' | 'up';
   readonly selectedOptionsCount?: number;
+  readonly preserveOptionsOrder?: boolean;
 };
 
 type FormComboboxSingleProps = FormComboboxBaseProps & {
@@ -109,8 +110,13 @@ const getSelectedValues = (
 
 const orderSelectedOptionsFirst = (
   options: FormComboboxOption[],
-  selectedValues: string[]
+  selectedValues: string[],
+  allOptionValue?: string
 ): FormComboboxOption[] => {
+  const allOption = allOptionValue
+    ? options.find((option) => option.value === allOptionValue)
+    : undefined;
+
   if (selectedValues.length === 0) return options;
 
   const selectedValueSet = new Set(selectedValues);
@@ -118,6 +124,8 @@ const orderSelectedOptionsFirst = (
   const unselectedOptions: FormComboboxOption[] = [];
 
   options.forEach((option) => {
+    if (option === allOption) return;
+
     if (selectedValueSet.has(option.value)) {
       selectedOptions.push(option);
       return;
@@ -126,7 +134,7 @@ const orderSelectedOptionsFirst = (
     unselectedOptions.push(option);
   });
 
-  return [...selectedOptions, ...unselectedOptions];
+  return [...(allOption ? [allOption] : []), ...selectedOptions, ...unselectedOptions];
 };
 
 const getNextMultipleValues = (
@@ -175,6 +183,7 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   isMenuPortaled = false,
   allOptionValue,
   direction = 'up',
+  preserveOptionsOrder = false,
   ...props
 }) => {
   const id = useId();
@@ -200,10 +209,11 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   ), [props.multiple, props.value, internalSingleValue, internalMultipleValue]);
   const [draftMultipleValue, setDraftMultipleValue] = useState<string[]>(selectedValues);
   const menuSelectedValues = isApplyBtnVisible ? draftMultipleValue : selectedValues;
+  const [menuOptionsOrder, setMenuOptionsOrder] = useState<FormComboboxOption[]>(() => (
+    preserveOptionsOrder ? options : orderSelectedOptionsFirst(options, selectedValues, allOptionValue)
+  ));
 
-  const orderedOptions = useMemo(() => (
-    orderSelectedOptionsFirst(options, menuSelectedValues)
-  ), [options, menuSelectedValues]);
+  const orderedOptions = isOpen ? menuOptionsOrder : options;
 
   const filteredOptions = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase();
@@ -253,8 +263,14 @@ export const FormCombobox: FC<FormComboboxProps> = ({
   }, [isOpen]);
 
   useEffect(() => {
-    if (isOpen && isApplyBtnVisible) {
-      setDraftMultipleValue(selectedValues);
+    if (isOpen) {
+      if (isApplyBtnVisible) {
+        setDraftMultipleValue(selectedValues);
+      }
+
+      setMenuOptionsOrder(
+        preserveOptionsOrder ? options : orderSelectedOptionsFirst(options, selectedValues, allOptionValue)
+      );
     }
   }, [isOpen, isApplyBtnVisible]);
 

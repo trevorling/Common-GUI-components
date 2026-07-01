@@ -395,8 +395,21 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         return updatedPagination;
     };
 
+    const selectedChatDomainUuid = useMemo(() => {
+        return userWidgetDomains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
+    }, [selectedChat]);
+    const qualitySettingsConfigQuery = useQuery<QualitySettingsConfig>({
+        queryKey: ['configs/chat-analysis'],
+        queryFn: () => loadQualitySettingsConfig(selectedChatDomainUuid ? selectedChatDomainUuid : GLOBAL_FEEDBACK_CONFIG_DOMAIN),
+    });
+
+    const isChatAnalysisEnabled = useMemo(() => {
+        return qualitySettingsConfigQuery.data?.chatAnalysisEnabled ?? false;
+    }, [qualitySettingsConfigQuery.data]);
+
     useEffect(() => {
         if (initialLoad) {
+            if (qualitySettingsConfigQuery.isLoading) return;
             fetchData();
         } else if (skipNextSelectedColumnsEffect.current) {
             skipNextSelectedColumnsEffect.current = false;
@@ -409,7 +422,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                 search,
             });
         }
-    }, [selectedColumns, currentDomains]);
+    }, [selectedColumns, currentDomains, qualitySettingsConfigQuery.isLoading]);
 
     const updatePagePreferences = useMutation({
         mutationFn: (data: {
@@ -424,18 +437,6 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
             });
         },
     });
-
-    const selectedChatDomainUuid = useMemo(() => {
-        return userWidgetDomains.data?.find(domain => domain.url === selectedChat?.endUserUrl)?.id ?? null;
-    }, [selectedChat]);
-    const qualitySettingsConfigQuery = useQuery<QualitySettingsConfig>({
-        queryKey: ['configs/chat-analysis'],
-        queryFn: () => loadQualitySettingsConfig(selectedChatDomainUuid ? selectedChatDomainUuid : GLOBAL_FEEDBACK_CONFIG_DOMAIN),
-    });
-
-    const isChatAnalysisEnabled = useMemo(() => {
-        return qualitySettingsConfigQuery.data?.chatAnalysisEnabled ?? false;
-    }, [qualitySettingsConfigQuery.data]);
 
     const getAllEndedChats = useMutation({
         mutationFn: (data: {
@@ -573,7 +574,12 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         const realSelectedColumns = getRealSelectedColumns(columns);
 
         if (areAllColumnsSelected(realSelectedColumns)) {
-            return [ALL_COLUMNS_VALUE, ...getAllColumnValues()];
+            const allColumnValues = getAllColumnValues();
+            const extraSelectedColumns = realSelectedColumns.filter(
+                (column) => !allColumnValues.includes(column)
+            );
+
+            return [ALL_COLUMNS_VALUE, ...allColumnValues, ...extraSelectedColumns];
         }
 
         return realSelectedColumns;
@@ -1869,12 +1875,31 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         };
     }, [chatQualityMeasurementQuery.data]);
 
+    const chatAnalysisFieldByMeasurementType: Record<MeasurementType, 'theme' | 'responseQuality' | 'followUpStatus'> = {
+        [MEASUREMENT_TYPES.THEME]: 'theme',
+        [MEASUREMENT_TYPES.QUALITY]: 'responseQuality',
+        [MEASUREMENT_TYPES.FOLLOW_UP_ACTION]: 'followUpStatus',
+    };
+
     const chatQualityMeasurementMutation = useMutation({
         mutationFn: postQualityMeasurements,
         onSuccess: (_data, variables) => {
             queryClient.invalidateQueries({
                 queryKey: ['chats/quality/measurements', variables.chatUuid],
             });
+
+            const field = chatAnalysisFieldByMeasurementType[variables.type];
+            const value = Array.isArray(variables.value) ? variables.value : [variables.value];
+
+            setFilteredEndedChatsList((prevChats) =>
+                prevChats.map((chat) =>
+                    chat.id === variables.chatUuid ? ({ ...chat, [field]: value } as ChatType) : chat
+                )
+            );
+
+            if (selectedChat?.id === variables.chatUuid) {
+                setSelectedChat({ ...selectedChat, [field]: value } as ChatType);
+            }
         },
         onError: (error: AxiosError) => {
             toast?.open({
@@ -2065,6 +2090,7 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
                             selectedOptionsCount={getRealSelectedColumns(selectedColumns).length}
                             multiple={true}
                             allOptionValue={ALL_COLUMNS_VALUE}
+                            preserveOptionsOrder
                             direction="down"
                             onChange={(selection) => {
                                 const columns = getUiSelectedColumns(selection);
