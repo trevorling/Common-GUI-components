@@ -761,16 +761,19 @@ const ChatHistory: FC<PropsWithChildren<HistoryProps>> = ({
         );
     };
 
-    const wwwView = (props: any) => (
-        <Tooltip content={props.getValue() ?? ''}>
-            <button
-                onClick={() => copyValueToClipboard(props.getValue())}
-                style={{cursor: 'pointer'}}
-            >
-                {props.getValue() ?? ''}
+    const wwwView = (props: any) => {
+        const value = props.getValue() ?? '';
+        const isTruncated = value.length > 40;
+        const displayValue = isTruncated ? `${value.slice(0, 40)}...` : value;
+
+        const button = (
+            <button onClick={() => copyValueToClipboard(value)} style={{cursor: 'pointer'}}>
+                {displayValue}
             </button>
-        </Tooltip>
-    );
+        );
+
+        return isTruncated ? <Tooltip content={value}>{button}</Tooltip> : button;
+    };
 
     const statusView = (props: any) => {
         const isLastMessageEvent =
