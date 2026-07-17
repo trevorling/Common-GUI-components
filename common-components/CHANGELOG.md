@@ -7,6 +7,7 @@ All changes to this project will be documented in this file.
 ## [0.0.64] - 17.07.2026
 
 - Fixed Long Url's column ui
+- Updated sanitize-html package to latest version
 
 ## [0.0.63] - 06.07.2026
 
