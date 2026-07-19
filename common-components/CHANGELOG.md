@@ -8,6 +8,7 @@ All changes to this project will be documented in this file.
 
 - Fixed Long Url's column ui
 - Updated sanitize-html package to latest version
+- Added yes/no filter to Comment and Feedback columns in the chat history table
 
 ## [0.0.63] - 06.07.2026
 
